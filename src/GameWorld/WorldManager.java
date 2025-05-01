@@ -1,6 +1,8 @@
 package GameWorld;
 
 import Cards.BaseCard;
+import Cards.BattleCard;
+
 import javax.swing.SwingWorker;
 import java.util.*;
 import java.util.function.Consumer;
@@ -17,8 +19,10 @@ public class WorldManager {
         for (int i = 0; i < 20; i++) {
             if (i % 5 == 0) {
                 deck.push(CardFactory.createMonsterCard(currentLevel));
+            } else if (random.nextBoolean()) {
+                deck.push(CardFactory.createBattleCard(currentLevel));
             } else {
-                deck.push(CardFactory.createRandomEventCard(currentLevel));
+                deck.push(CardFactory.createEncounterCard(currentLevel));
             }
         }
         Collections.shuffle(deck);
@@ -31,10 +35,8 @@ public class WorldManager {
                 generateDeck();
                 return null;
             }
-
             @Override
             protected void done() {
-                // runs on EDT
                 onComplete.run();
             }
         }.execute();
@@ -70,5 +72,9 @@ public class WorldManager {
 
     public int getCurrentLevel() {
         return currentLevel;
+    }
+
+    public void setCurrentCard(BaseCard card) {
+        currentCard = card;
     }
 }

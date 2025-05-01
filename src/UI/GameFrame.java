@@ -1,21 +1,19 @@
+// File: UI/GameFrame.java
 package UI;
 
 import Cards.BaseCard;
+import Cards.BattleCard;
+import Cards.EncounterCard;
 import Cards.EventCard;
-import Cards.MonsterCard;
-import GameWorld.CombatUtils;
-import GameWorld.EquipmentManager;
-import GameWorld.Equipment.Weapons.CruddySword;
-import GameWorld.Equipment.Armors.CruddyTrousers;
+import GameWorld.*;
 import GameWorld.Equipment.Accessories.CrudWithString;
-import GameWorld.Player;
-import GameWorld.TurnManager;
-import GameWorld.WorldManager;
+import GameWorld.Equipment.Armors.CruddyTrousers;
+import GameWorld.Equipment.Weapons.CruddySword;
+import GameWorld.Interfaces.ICombatEntity;
 
 import javax.swing.*;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.util.List;
+import java.awt.event.*;
+import java.util.*;
 
 public class GameFrame extends JFrame {
     private static GameFrame INSTANCE;
@@ -23,135 +21,162 @@ public class GameFrame extends JFrame {
 
     private final Player       player;
     private final WorldManager worldManager;
-    private GameUI       gameUI;
     private       TurnManager  turnManager;
-    public GameUI getGameUI(){
-        return  gameUI;
-    }
+    private       BaseCard     currentCard;
+    private final GameUI       gameUI;
 
     public GameFrame() {
         super("Dungeons of Wimbledor");
         INSTANCE = this;
 
-        // Window setup
+        // 0) Window setup
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(800, 600);
+        setSize(800,600);
         setLocationRelativeTo(null);
 
-        //  Initialize game logic
+        // 1) Core model init
         player       = new Player();
         worldManager = new WorldManager();
+        worldManager.generateDeck();         // fill & shuffle
+        currentCard  = worldManager.drawCard();
 
-        // Starter grej
+        // 2) Starter gear
         var em = EquipmentManager.GetInstance();
-        em.equipWeapon   (new CruddySword(),    player);
-        em.equipArmor    (new CruddyTrousers(), player);
-        em.equipAccessory(new CrudWithString(), player);
+        em.equipWeapon(new CruddySword(), player);
+        em.equipArmor (new CruddyTrousers(),player);
+        em.equipAccessory(new CrudWithString(),player);
 
-        //  Async deck generation + UI creation
-        worldManager.generateDeckAsync(() -> {
-            drawNextCard();
+        // 3) Build UI
+        gameUI = new GameUI(player, currentCard, worldManager.getDeck());
+        setContentPane(gameUI);
 
+        // 4) Wire up keys & swipes
+        setupListeners();
 
-            gameUI = new GameUI(
-                    player,
-                    worldManager.getCurrentCard(),
-                    worldManager.getDeck()
-            );
-            setContentPane(gameUI);
+        // 5) First full sync
+        updateUI();
 
-            //  make listeners
-            setupListeners();
-
-            // d) full UI sync
-            updateUI();
-
-            // e) show the window
-            setVisible(true);
-        });
+        // 6) Show
+        setVisible(true);
     }
 
-    private void drawNextCard() {
-        BaseCard next = worldManager.drawCard();
-        if (next == null) {
-            worldManager.nextLevel();
-            next = worldManager.drawCard();
+    /** Single method to refresh *everything* on screen. */
+    public void updateUI() {
+        // a) If we just landed on a BattleCard and haven't started combat yet, do so
+        if (currentCard instanceof BattleCard bc && turnManager == null) {
+            startBattle(bc);
+            return;
         }
-        if (next instanceof MonsterCard m) {
-            turnManager = new TurnManager(List.of(player, m));
+
+        // b) Update card / stats / deck / gear / consumables
+        gameUI.updateCard(currentCard);
+        gameUI.updateDeckSize(worldManager.getDeckSize());
+        gameUI.updateStats(player);
+        gameUI.updateEquipment(player);
+        gameUI.updateConsumables(player);
+
+        // c) If mid-combat & it’s player’s turn, re-show actions
+        if (turnManager != null
+                && turnManager.getCurrentEntity() instanceof Player) {
+            gameUI.getCardPanel().showActions(player);
+        }
+
+        gameUI.requestFocusInWindow();
+    }
+
+    /** When a BattleCard triggers, spin up combat and flash the buttons. */
+    public void startBattle(BattleCard bc) {
+        // 1) keep reference
+        currentCard = bc;
+
+        // 2) build turn queue
+        List<ICombatEntity> combatants = new ArrayList<>();
+        combatants.add(player);
+        combatants.addAll(bc.getMonsters());
+
+        turnManager = new TurnManager(combatants);
+        turnManager.startNextTurn();
+
+        // 3) faster side opening strike
+        if (!(turnManager.getCurrentEntity() instanceof Player)) {
+            var enemy = turnManager.getCurrentEntity();
+            CombatUtils.entityTurn(enemy, player);
             turnManager.startNextTurn();
-            if (!(turnManager.getCurrentEntity() instanceof Player)) {
-                CombatUtils.entityTurn(m, player);
-                turnManager.startNextTurn();
-            }
-        } else {
-            turnManager = null;
+        }
+
+        // 4) show UI + player buttons
+        gameUI.updateCard(currentCard);
+        gameUI.updateDeckSize(worldManager.getDeckSize());
+        gameUI.updateStats(player);
+        gameUI.updateEquipment(player);
+        gameUI.updateConsumables(player);
+        gameUI.getCardPanel().showActions(player);
+    }
+
+    /** Handle a swipe or button click in legacy EventCard flow. */
+    public void processAction(String code) {
+        if (currentCard instanceof EventCard ev) {
+            ev.onInteract(player, code);
+            currentCard = worldManager.drawCard();
+            turnManager = null;      // cancel any old combat
+            updateUI();
         }
     }
 
     private void setupListeners() {
-        gameUI.addKeyListener(new KeyAdapter() {
+        // Arrow keys & 'S' for swipes
+        gameUI.getLeftButton().addActionListener(e -> processAction("LEFT"));
+        gameUI.getUpButton().addActionListener(e -> processAction("UP"));
+        gameUI.getRightButton().addActionListener(e -> processAction("RIGHT"));
+
+        gameUI.addKeyListener(new KeyAdapter(){
             @Override public void keyPressed(KeyEvent e) {
-                switch (e.getKeyCode()) {
-                    case KeyEvent.VK_LEFT  -> processEventSwipe("LEFT");
-                    case KeyEvent.VK_UP    -> processEventSwipe("UP");
-                    case KeyEvent.VK_RIGHT -> processEventSwipe("RIGHT");
-                    case KeyEvent.VK_S     -> shakeCard();
+                switch(e.getKeyCode()) {
+                    case KeyEvent.VK_LEFT  -> processAction("LEFT");
+                    case KeyEvent.VK_UP    -> processAction("UP");
+                    case KeyEvent.VK_RIGHT -> processAction("RIGHT");
+                    case KeyEvent.VK_S     -> processAction("LEFT");
                 }
             }
         });
         gameUI.setFocusable(true);
-        gameUI.requestFocusInWindow();
     }
+    public void onBattleComplete() {
+        // 1) award all gold
+        BattleCard bc = (BattleCard)currentCard;
+        bc.getMonsters().forEach(m -> player.addGold(m.getGold()));
 
-    public void processAction(String dir){
-        processEventSwipe(dir);
-    }
-    private void processEventSwipe(String dir) {
-        BaseCard c = worldManager.getCurrentCard();
-        if (c instanceof EventCard ev) {
-            ev.applyEffect(player, dir);
-            drawNextCard();
+        // 2) if that battle was nested inside an EncounterCard, advance it
+        if (bc.getParentEncounter() instanceof EncounterCard enc) {
+            enc.advanceTo(bc.getPostBattleStage());
+            currentCard = enc;
+            // call back into updateUI so that the new encounter stage shows up:
+            updateUI();
+        }
+        // 3) otherwise just draw a fresh world card
+        else {
+            turnManager = null;
+            currentCard = worldManager.drawCard();
             updateUI();
         }
     }
 
-    /** Fling away a card (Event only) if shakes remain. */
-    private void shakeCard() {
-        if (player.getShakes() > 0) {
-            player.setShakes(player.getShakes() - 1);
-            drawNextCard();
-            updateUI();
-        }
-    }
-
-    /** Refreshes the card text, combat buttons, stats, deck count, etc. */
-    public void updateUI() {
-        gameUI.updateCard       (worldManager.getCurrentCard());
-        gameUI.updateDeckSize   (worldManager.getDeck().size());
-        gameUI.updateStats      (player);
-        gameUI.updateEquipment  (player);
-        gameUI.updateConsumables(player);
+    /** Called when an EncounterCard has run out of stages. */
+    public void onEncounterComplete() {
+        turnManager = null;
+        currentCard = worldManager.drawCard();
+        updateUI();
     }
 
     public TurnManager getTurnManager() {
         return turnManager;
     }
 
-
-    public void handleBattleEnd() {
-        if (player.getHP() <= 0) {
-            JOptionPane.showMessageDialog(this, "Game Over!");
-            System.exit(0);
-        } else {
-            MonsterCard m = (MonsterCard) worldManager.getCurrentCard();
-            player.addGold(m.getGold());
-            drawNextCard();
-            updateUI();
-        }
-    }
-
     public static void main(String[] args) {
         SwingUtilities.invokeLater(GameFrame::new);
+    }
+
+    public GameUI getGameUI() {
+        return gameUI;
     }
 }

@@ -1,13 +1,9 @@
 package UI;
 
-import Cards.BaseCard;
-import Cards.EventCard;
-import Cards.MonsterCard;
-import GameWorld.CombatUtils;
-import GameWorld.Enums.Team;
-import GameWorld.Enums.TargetMode;
+import Cards.*;
 import GameWorld.Interfaces.ICombatAction;
 import GameWorld.Interfaces.ICombatEntity;
+import GameWorld.Enums.TargetMode;
 import GameWorld.Player;
 import GameWorld.TurnManager;
 
@@ -16,29 +12,27 @@ import java.awt.*;
 import java.util.List;
 
 public class CardPanel extends JPanel {
-    private final JLabel    titleLabel           = new JLabel();
-    private final JTextArea descriptionArea      = new JTextArea();
-    private final JPanel    actionButtonsPanel   = new JPanel(new FlowLayout(FlowLayout.CENTER));
-    private final JPanel    targetButtonsPanel   = new JPanel(new FlowLayout(FlowLayout.CENTER));
-    private final JTextArea logArea              = new JTextArea(5,30);
+    private final JLabel    titleLabel         = new JLabel();
+    private final JTextArea descriptionArea    = new JTextArea();
+    private final JPanel    actionButtonsPanel = new JPanel(new FlowLayout());
+    private final JPanel    targetButtonsPanel = new JPanel(new FlowLayout());
+    private final JTextArea logArea            = new JTextArea(5,30);
     private final JScrollPane logScrollPane;
-    private final Color     defaultBackground;
-    private final Color     defaultTitleColor    = Color.WHITE;
+    private final Color     defaultTitleColor  = Color.WHITE;
     private Timer           flashTimer;
 
     public CardPanel() {
         super(new BorderLayout());
-        defaultBackground = new Color(30,30,30);
-        setBackground(defaultBackground);
+        setBackground(new Color(30,30,30));
         setBorder(BorderFactory.createLineBorder(Color.WHITE));
 
-        // ─── Title ─────────────────────────────────────────────────────────────
+        // Title
         titleLabel.setFont(new Font("Serif", Font.BOLD, 20));
         titleLabel.setForeground(defaultTitleColor);
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
         add(titleLabel, BorderLayout.NORTH);
 
-        // ─── Description ─────────────────────────────────────────────────────
+        // Description
         descriptionArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
         descriptionArea.setForeground(Color.LIGHT_GRAY);
         descriptionArea.setOpaque(false);
@@ -47,15 +41,15 @@ public class CardPanel extends JPanel {
         descriptionArea.setEditable(false);
         add(descriptionArea, BorderLayout.CENTER);
 
-        // ─── Action Buttons ───────────────────────────────────────────────────
+        // Action buttons (bottom)
         actionButtonsPanel.setOpaque(false);
         add(actionButtonsPanel, BorderLayout.SOUTH);
 
-        // ─── Target Buttons ───────────────────────────────────────────────────
+        // Target buttons (left of actions)
         targetButtonsPanel.setOpaque(false);
         add(targetButtonsPanel, BorderLayout.WEST);
 
-        // ─── Combat Log ───────────────────────────────────────────────────────
+        // Combat log (right)
         logArea.setEditable(false);
         logArea.setLineWrap(true);
         logArea.setWrapStyleWord(true);
@@ -68,39 +62,48 @@ public class CardPanel extends JPanel {
         add(logScrollPane, BorderLayout.EAST);
     }
 
-
-    public void updateCard(BaseCard card) {
+    /**
+     * Refresh this panel for the given card & player.
+     */
+    public void updateCard(BaseCard card, Player player) {
+        // 1) Title & description
         titleLabel.setText(card.getTitle());
         descriptionArea.setText(card.getText());
 
+        // 2) Clear old buttons
         actionButtonsPanel.removeAll();
         targetButtonsPanel.removeAll();
 
-        TurnManager tm = GameFrame.getInstance().getTurnManager();
-
-        if (card instanceof MonsterCard && tm != null) {
-            ICombatEntity current = tm.getCurrentEntity();
-            if (current instanceof Player) {
-                showActions(current);
+        // 3a) EncounterCard → show its options
+        if (card instanceof EncounterCard ec) {
+            for (StageOption opt : ec.getCurrentStage().getOptions()) {
+                addOptionButton(opt.getCode(), opt.getLabel());
             }
-        } //skal ændres til noget tilsvarende eventkortet
+        }
+        // 3b) BattleCard → *nothing here* (buttons come from startBattle() or updateUI())
+        else if (card instanceof BattleCard) {
+            // Intentionally blank
+        }
+        // 3c) EventCard → legacy swipe
         else if (card instanceof EventCard) {
-            addSwipeButton("Left",  "LEFT");
-            addSwipeButton("Up",    "UP");
-            addSwipeButton("Right", "RIGHT");
+            addSwipeButton("← Left",  "LEFT");
+            addSwipeButton("↑ Up",    "UP");
+            addSwipeButton("→ Right", "RIGHT");
         }
 
         revalidate();
         repaint();
     }
 
-    public void showActions(ICombatEntity actor) {
+    // ─── Combat ─────────────────────────────────────────────────────────────
+
+    void showActions(ICombatEntity actor) {
         actionButtonsPanel.removeAll();
         targetButtonsPanel.removeAll();
 
-        for (ICombatAction action : actor.getActions()) {
-            JButton b = new JButton(action.getLabel());
-            b.addActionListener(e -> onActionSelected(actor, action));
+        for (ICombatAction act : actor.getActions()) {
+            JButton b = new JButton(act.getLabel());
+            b.addActionListener(e -> onCombatActionSelected(actor, act));
             actionButtonsPanel.add(b);
         }
 
@@ -108,74 +111,70 @@ public class CardPanel extends JPanel {
         repaint();
     }
 
-    private void onActionSelected(ICombatEntity actor, ICombatAction action) {
-        TargetMode mode = action.getTargetMode();
-        List<ICombatEntity> enemies;
+    private void onCombatActionSelected(ICombatEntity actor, ICombatAction action) {
         TurnManager tm = GameFrame.getInstance().getTurnManager();
-        Team team = actor.getTeam();
+        List<ICombatEntity> targets;
 
-        switch (mode) {
+        switch (action.getTargetMode()) {
             case SELF -> {
-                performAction(actor, List.of(actor), action);
+                performCombat(actor, List.of(actor), action);
                 return;
             }
             case ALL_ENEMIES -> {
-                enemies = tm.getEnemiesOf(team);
-                performAction(actor, enemies, action);
+                targets = tm.getEnemiesOf(actor.getTeam());
+                performCombat(actor, targets, action);
                 return;
             }
             case ALL_ALLIES -> {
-                enemies = tm.getEntitiesOnTeam(team);
-                performAction(actor, enemies, action);
+                targets = tm.getEntitiesOnTeam(actor.getTeam());
+                performCombat(actor, targets, action);
                 return;
             }
             case ALL_ENTITIES -> {
-                enemies = tm.getAllEntities();
-                performAction(actor, enemies, action);
+                targets = tm.getAllEntities();
+                performCombat(actor, targets, action);
                 return;
             }
             case SINGLE_ENEMY -> {
-                enemies = tm.getEnemiesOf(team);
-                if (enemies.size() == 1){
-                    performAction(actor, enemies, action);
+                targets = tm.getEnemiesOf(actor.getTeam());
+                if (targets.size() == 1) {
+                    performCombat(actor, targets, action);
                     return;
                 }
                 targetButtonsPanel.removeAll();
-                for (ICombatEntity tgt : enemies) {
-                    JButton tb = new JButton(tgt.getName());
-                    tb.addActionListener(evt -> performAction(actor, List.of(tgt), action));
+                for (ICombatEntity t : targets) {
+                    JButton tb = new JButton(t.getName());
+                    tb.addActionListener(evt -> performCombat(actor, List.of(t), action));
                     targetButtonsPanel.add(tb);
                 }
                 revalidate();
                 repaint();
                 return;
             }
-            default -> {}
         }
     }
 
-    private void performAction(ICombatEntity actor,
+    private void performCombat(ICombatEntity actor,
                                List<ICombatEntity> targets,
-                               ICombatAction action) {
+                               ICombatAction action)
+    {
         action.execute(actor, targets);
-
         TurnManager tm = GameFrame.getInstance().getTurnManager();
         tm.startNextTurn();
 
         if (tm.isBattleOver()) {
-            GameFrame.getInstance().handleBattleEnd();
+            GameFrame.getInstance().onBattleComplete();
             return;
         }
 
         ICombatEntity next = tm.getCurrentEntity();
         if (next instanceof Player) {
             showActions(next);
-        }
-        else {
+        } else {
+            // AI turn
             ICombatAction aiAct = next.getActions().get(0);
-            List<ICombatEntity> aiTargs = tm.getEnemiesOf(next.getTeam());
-            aiAct.execute(next, aiTargs);
-
+            List<ICombatEntity> aiTargets = tm.getEnemiesOf(next.getTeam());
+            aiAct.execute(next, aiTargets);
             tm.startNextTurn();
             showActions(tm.getCurrentEntity());
         }
@@ -183,30 +182,38 @@ public class CardPanel extends JPanel {
         GameFrame.getInstance().updateUI();
     }
 
-    public void log(String message) {
-        SwingUtilities.invokeLater(() -> {
-            logArea.append(message + "\n");
-            logArea.setCaretPosition(logArea.getDocument().getLength());
-        });
-    }
+    // ─── Encounter & Event ──────────────────────────────────────────────────
 
-    public void flash(Color color) {
-        if (flashTimer != null && flashTimer.isRunning()) {
-            flashTimer.stop();
-        }
-        titleLabel.setForeground(color);
-
-        flashTimer = new Timer(250, e -> {
-            titleLabel.setForeground(defaultTitleColor);
-            flashTimer.stop();
-        });
-        flashTimer.setRepeats(false);
-        flashTimer.start();
+    private void addOptionButton(String code, String label) {
+        JButton b = new JButton(label);
+        b.setActionCommand(code);
+        b.addActionListener(e -> GameFrame.getInstance().processAction(code));
+        actionButtonsPanel.add(b);
     }
 
     private void addSwipeButton(String text, String cmd) {
         JButton b = new JButton(text);
         b.addActionListener(e -> GameFrame.getInstance().processAction(cmd));
         actionButtonsPanel.add(b);
+    }
+
+    // ─── Log & Flash ───────────────────────────────────────────────────────
+
+    public void log(String msg) {
+        SwingUtilities.invokeLater(() -> {
+            logArea.append(msg + "\n");
+            logArea.setCaretPosition(logArea.getDocument().getLength());
+        });
+    }
+
+    public void flash(Color c) {
+        titleLabel.setForeground(c);
+        if (flashTimer != null && flashTimer.isRunning()) flashTimer.stop();
+        flashTimer = new Timer(250, e -> {
+            titleLabel.setForeground(defaultTitleColor);
+            flashTimer.stop();
+        });
+        flashTimer.setRepeats(false);
+        flashTimer.start();
     }
 }

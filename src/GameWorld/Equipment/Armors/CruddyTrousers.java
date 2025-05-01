@@ -8,6 +8,12 @@ import java.util.List;
 public class CruddyTrousers extends Armor {
     @Override
     public int getDefenseBonus() { return 1; }
+
+    @Override
+    public int getSpeedBonus() {
+        return 50;
+    }
+
     @Override
     public String getName() { return "Cruddy Trousers"; }
     public String getDescription() {

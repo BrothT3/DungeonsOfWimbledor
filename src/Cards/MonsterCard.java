@@ -1,5 +1,6 @@
 package Cards;
 
+import GameWorld.CombatActions.MonsterBasicAttackAction;
 import GameWorld.Enums.Team;
 import GameWorld.Interfaces.ICombatAction;
 import GameWorld.Interfaces.ICombatEntity;
@@ -66,7 +67,10 @@ public abstract class MonsterCard extends BaseCard implements ICombatEntity {
     @Override public float  getCritDamage()        { return critDamage; }
     @Override public void   setCritDamage(float v) { critDamage = v; }
     @Override public void   takeDamage(int amt)    { hp -= amt; }
-    @Override public List<ICombatAction> getActions()    { return actions; }
+    public List<ICombatAction> getActions() {
+        // return a single “Bite” or “Claw” action
+        return List.of(new MonsterBasicAttackAction());
+    }
     @Override public void   setActions(List<ICombatAction> a) { actions = a; }
     @Override public Team   getTeam()              { return Team.ENEMY; }
 

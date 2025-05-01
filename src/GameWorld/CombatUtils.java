@@ -84,7 +84,7 @@ public class CombatUtils {
         GameUI ui = frame.getGameUI();
         if (ui == null) return;
 
-        CardPanel panel = ui.GetCardPanel();
+        CardPanel panel = ui.getCardPanel();
         panel.log(message);
         if (flashColor != null) panel.flash(flashColor);
     }

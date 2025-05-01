@@ -9,10 +9,6 @@ public abstract class BaseCard {
 
     public abstract String getText();
 
-    public String getStats() {
-        return "";
-    }
-
     public abstract void onInteract(Player player, String direction);
 }
 

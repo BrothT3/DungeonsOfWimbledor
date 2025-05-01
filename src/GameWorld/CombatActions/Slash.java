@@ -12,7 +12,8 @@ public class Slash implements ICombatAction {
 
     @Override
     public void execute(ICombatEntity source, List<ICombatEntity> targets) {
-    ICombatEntity target = targets.get(0);
-    CombatUtils.entityTurn(source, target);
+        for (var t : targets) {
+            CombatUtils.entityTurn(source, t);
+        }
     }
 }
