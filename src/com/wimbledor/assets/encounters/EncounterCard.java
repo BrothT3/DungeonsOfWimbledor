@@ -69,15 +69,17 @@ public class EncounterCard implements ICard {
 
     @Override
     public ICard onOptionSelected(String code) {
-        for (CardOption opt : getOptions()) {
-            if (opt.getCode().equals(code)) {
-                // run the effect (narrative, battle‐launch, stage advance, etc.)
-                opt.applyEffect(GameContext.getPlayer());
-                // hand back the “next” card (this for nested stages, or null to move on)
-                return opt.getNextCard();
+        for (StageOption so : current.getOptions()) {
+            if (!so.getCode().equals(code)) continue;
+            so.apply(GameContext.getPlayer());
+            if (so.getNextBattle() != null) {
+                return so.getNextBattle();
             }
+            if (so.getNextStage() != null) {
+                return new EncounterCard(title, so.getNextStage());
+            }
+            return null;
         }
-        // if they clicked something invalid, just end encounter
         return null;
     }
 }

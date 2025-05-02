@@ -4,6 +4,8 @@ import com.wimbledor.entities.Player;
 import com.wimbledor.engine.EncounterDeck;
 import com.wimbledor.engine.EncounterFactory;
 import com.wimbledor.engine.GameContext;
+import com.wimbledor.equipment.EquipmentManager;
+import com.wimbledor.equipment.weapons.CruddySword;
 
 import javax.swing.*;
 import java.awt.*;
@@ -44,7 +46,7 @@ public class MainFrame extends JFrame {
         pack();
         setLocationRelativeTo(null);
         setVisible(true);
-
+        EquipmentManager.getInstance().equipWeapon(new CruddySword());
         controller.start();
         infoPanel.refresh();
     }

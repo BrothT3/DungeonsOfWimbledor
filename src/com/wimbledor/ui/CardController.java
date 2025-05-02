@@ -51,6 +51,7 @@ public class CardController implements ActionListener {
         ICard next = current.onOptionSelected(code);
 
         if (!inBattle && next instanceof BattleCard battle) {
+            System.out.println("Entering battle with " + battle);
             // 1) Enter battle state
             inBattle = true;
             current  = battle;
@@ -62,15 +63,18 @@ public class CardController implements ActionListener {
             // Don't call playerResolved here—battle launch isn't a player turn.
         }
         else if (!inBattle && next != null) {
+            System.out.println("Narrative branch to " + next);
             // Narrative branch/stage change
             current = next;
             view.display(current, this);
         }
         else if (!inBattle) {
+            System.out.println("Encounter ended, drawing next");
             // Encounter over: move to next
             drawNext();
         }
         else {
+            System.out.println("In battle, player action resolved");
             // inBattle == true: this must be a player combat action
             // Execute it via the view/current card logic
             // (your BattleCard.getOptions() effects should have already run)
