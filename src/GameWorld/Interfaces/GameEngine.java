@@ -1,6 +1,5 @@
 package GameWorld.Interfaces;
 
-import Cards.BattleCard;
 import GameWorld.TurnManager;
 
 public interface GameEngine {

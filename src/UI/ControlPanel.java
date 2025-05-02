@@ -4,8 +4,6 @@ package UI;
 import Cards.BaseCard;
 import Cards.EncounterCard;
 import Cards.EncounterStage;
-import Cards.StageOption;
-import GameWorld.*;
 import GameWorld.Player;
 import GameWorld.TurnManager;
 import GameWorld.Interfaces.ICombatAction;
