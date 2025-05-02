@@ -1,3 +1,4 @@
+// src/com/wimbledor/ui/CardController.java
 package com.wimbledor.ui;
 
 import com.wimbledor.assets.BattleCard;
@@ -10,100 +11,111 @@ import com.wimbledor.entities.ICombatEntity;
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.function.BiConsumer;
 
+/**
+ * Glue between narrative (CardView) and combat panels.
+ */
 public class CardController implements ActionListener {
     private final EncounterDeck deck;
-    private final CardView view;
-    private final MainFrame frame;
-    private ICard current;
-    private boolean inBattle = false;
+    private final CardView      cardView;
+    private final EnemyPanel    enemyPanel;
+    private final ActionPanel   actionPanel;
+    private final LogPanel      logPanel;
+    private final MainFrame     frame;
+
+    private ICard       current;
+    private boolean     inBattle    = false;
     private TurnManager turnManager;
-    public CardController(EncounterDeck deck, CardView view, MainFrame frame) {
-        this.deck  = deck;
-        this.view  = view;
-        this.frame = frame;
 
+    public CardController(EncounterDeck deck,
+                          CardView cardView,
+                          EnemyPanel enemyPanel,
+                          ActionPanel actionPanel,
+                          LogPanel logPanel,
+                          MainFrame frame) {
+        this.deck        = deck;
+        this.cardView    = cardView;
+        this.enemyPanel  = enemyPanel;
+        this.actionPanel = actionPanel;
+        this.logPanel    = logPanel;
+        this.frame       = frame;
 
+        GameContext.setOnEncounterComplete(this::onBattleComplete);
     }
-    private void swapCenter(JComponent comp, boolean refresh) {
-        frame.setCenterComponent(comp);
-        if (refresh) frame.refresh();
-    }
-    private void restoreNarrative() {
-        swapCenter(view, true);
-    }
-
-
 
     public void start() {
-        // Register to be notified when a battle (via GameLoop) finishes:
-        GameContext.setOnEncounterComplete(this::onBattleComplete);
         drawNext();
     }
 
     private void onBattleComplete() {
-        // Battle ended: flip the flag and then advance the narrative
         inBattle = false;
         SwingUtilities.invokeLater(this::drawNext);
     }
 
-    public void drawNext() {
-        // Standard narrative draw
+    private void drawNext() {
+        enemyPanel .setVisible(false);
+        actionPanel.setVisible(false);
+        logPanel   .setVisible(false);
+
+        cardView.setVisible(true);
+
         if (deck.hasNext()) {
             current = deck.draw();
-            view.display(current, this);
+            cardView.display(current, this);
         } else {
-            JOptionPane.showMessageDialog(frame, "You have cleared the dungeon!");
+            JOptionPane.showMessageDialog(frame, "You cleared the dungeon!");
         }
         frame.refresh();
     }
 
-
     @Override
     public void actionPerformed(ActionEvent e) {
         String code = e.getActionCommand();
-        ICard next = current.onOptionSelected(code);
+        ICard next  = current.onOptionSelected(code);
 
-        // 1) Entering a new battle
+        // 1) start battle
         if (!inBattle && next instanceof BattleCard battle) {
             inBattle = true;
             current  = battle;
-            view.display(current, this);
+            cardView.setVisible(false);
 
-            // launch the engine battle loop and keep its TurnManager
-            this.turnManager = GameContext.startBattleWith(GameContext.getPlayer(), battle);
+            enemyPanel.updateEnemies(battle.getMonsters());
+            enemyPanel.setVisible(true);
 
-            // immediately swap in the player's combat‐action UI
-            view.clear();
-            ActionPanel ap = new ActionPanel(this.turnManager, () -> {
-                GameContext.playerActionResolved();
-            });
-            swapCenter(ap, true);
+            logPanel.clear();
+            logPanel.setVisible(true);
 
+            turnManager = GameContext.startBattleWith(
+                    GameContext.getPlayer(),
+                    battle
+            );
+
+            actionPanel.updateActions(
+                    turnManager,
+                    logLine -> {
+                        logPanel.append(logLine);
+                        GameContext.playerActionResolved();
+                    }
+            );
+            actionPanel.setVisible(true);
+
+            frame.refresh();
             return;
         }
 
-        // 2) Player clicked a combat-action button
-        if (inBattle && current instanceof BattleCard) {
-            // ActionPanel already executed the ICombatAction;
-            // now signal the engine to advance to the next turn
-            GameContext.playerActionResolved();
+        // 2) in‐battle button clicks are handled inside ActionPanel
+        if (inBattle && next instanceof BattleCard) {
             return;
         }
 
-        // 3) Narrative branches or encounter end
+        // 3) narrative
         if (!inBattle && next != null) {
-            // still inside the same encounter → redraw it
             current = next;
-            view.display(current, this);
+            cardView.display(current, this);
         } else if (!inBattle) {
-
-            // no more options → advance to the next encounter card
             drawNext();
         }
 
         frame.refresh();
     }
 }
-

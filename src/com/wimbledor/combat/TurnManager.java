@@ -3,159 +3,127 @@ package com.wimbledor.combat;
 import com.wimbledor.entities.ICombatEntity;
 import com.wimbledor.entities.Team;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Deque;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
- * Schedules and advances turns in a battle, honoring speed order,
- * skipping dead entities, and invoking a callback when the battle ends.
- * Turn pacing is controlled externally via a turnDelayMs variable (delta time).
+ * Schedules and advances turns, with explicit support for
+ * waiting on player input (via playerActionResolved()).
  */
 public class TurnManager {
-    /**
-     * Milliseconds per turn; UI or game loop should respect this delay between calls.
-     */
-    private static long turnDelayMs = 500;
-    private long timerMs;
-    private long accumulator = 0;  // accumulates delta time
-
     private final List<ICombatEntity> allEntities;
-    private ICombatEntity current;
-    private final Deque<ICombatEntity> turnQueue = new ArrayDeque<>();
-
     private final Runnable onBattleOver;
+    public static long TURN_DELAY_MS = 500;
+
+    // state of whose turn it is
+    private ICombatEntity currentEntity;
 
     public TurnManager(ICombatEntity player,
                        List<ICombatEntity> enemies,
                        Runnable onBattleOver) {
+        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(enemies, "enemies");
+        this.onBattleOver = Objects.requireNonNull(onBattleOver, "onBattleOver");
+
+        // build the combatants list
         this.allEntities = new ArrayList<>();
         this.allEntities.add(player);
         this.allEntities.addAll(enemies);
-        this.onBattleOver = onBattleOver;
-        refillQueue();
-        this.timerMs = turnDelayMs;
+
+        // no one has acted yet
+        this.currentEntity = null;
     }
+
+    /**
+     * Called each tick by GameLoop.
+     * If it's AI's turn, processes exactly one turn.
+     * If it's the player's turn, returns immediately and waits
+     * for playerActionResolved().
+     * If battle is over, fires onBattleOver once.
+     */
     public void update(long deltaMs) {
-        // If battle over, fire callback once
+        // If the fight has already ended, fire callback (once).
         if (isBattleOver()) {
             onBattleOver.run();
             return;
         }
 
-        // Ensure we have a current actor
-        if (current == null) {
-            current = nextActor();
-            // reset timer for new actor
-            timerMs = turnDelayMs;
+        // If no current actor, pick next
+        if (currentEntity == null) {
+            startNextTurn();
         }
 
-        // If it's player turn, wait indefinitely for UI action
-        if (current.getTeam() == Team.PLAYER) {
+        // If it's the player, wait for playerActionResolved()
+        if (currentEntity.getTeam() == Team.PLAYER) {
             return;
         }
 
-        // Countdown for AI turns
-        timerMs -= deltaMs;
-        if (timerMs <= 0) {
-            // process AI turn
-            current.takeTurn(this);
-            // clear current so next update picks new actor
-            current = null;
-        }
-    }
-    /**
-     * Runs the battle loop; should be called repeatedly by external scheduler
-     * that respects turnDelayMs between invocations.
-     */
-    public void startBattle() {
-        while (!isBattleOver()) {
-            processTurn();
-            // pacing handled externally using getTurnDelayMs()
-        }
-        onBattleOver.run();
+        // Otherwise: AI actor takes exactly one turn
+        currentEntity.takeTurn(this);
+        // clear so that next update() will pick the next
+        currentEntity = null;
     }
 
-    /**
-     * Process exactly one turn: select next actor and let them act.
-     */
-    public void processTurn() {
-        ICombatEntity actor = nextActor();
-        if (actor == null) return;
-        actor.takeTurn(this);
-        if (isBattleOver()) onBattleOver.run();
-    }
-
-    /**
-     * Configurable turn delay in milliseconds; meant for external timing.
-     */
-    public static void setTurnDelayMs(long ms) {
-        turnDelayMs = ms;
-    }
-    public static long getTurnDelayMs() {
-        return turnDelayMs;
-    }
-
-    private ICombatEntity nextActor() {
-        if (turnQueue.isEmpty()) refillQueue();
-        ICombatEntity e = turnQueue.pollFirst();
-        if (e == null || !e.isAlive()) {
-            return nextActor();
-        }
-        return e;
-    }
+    /** Called by UI when the player has selected & executed their action. */
     public void playerActionResolved() {
-        // clear current and reset timer so AI continues
-        current = null;
-        timerMs = turnDelayMs;
-    }
-    private void refillQueue() {
-        turnQueue.clear();
-        allEntities.stream()
-                .filter(ICombatEntity::isAlive)
-                .sorted(Comparator.comparingInt(ICombatEntity::getSpeed).reversed())
-                .forEach(turnQueue::addLast);
-    }
-
-    private boolean isBattleOver() {
-        boolean playerAlive = allEntities.stream()
-                .filter( e -> e.getTeam() == Team.PLAYER)
-                .anyMatch(ICombatEntity::isAlive);
-        boolean enemyAlive  = allEntities.stream()
-                .filter(e -> e.getTeam() != Team.PLAYER)
-                .anyMatch(ICombatEntity::isAlive);
-        return !(playerAlive && enemyAlive);
-    }
-
-    public List<ICombatEntity> getEntitiesOnTeam(Team team) {
-        List<ICombatEntity> list = new ArrayList<>();
-        for (ICombatEntity e : allEntities) {
-            if (e.getTeam() == team && e.isAlive()) list.add(e);
+        if (isBattleOver()) {
+            onBattleOver.run();
+            return;
         }
-        return list;
+        // if we were waiting on the player, let them act now:
+        if (currentEntity != null && currentEntity.getTeam() == Team.PLAYER) {
+            // We assume the UI has already applied the action,
+            // so we simply clear current so update() can advance.
+            currentEntity = null;
+        }
     }
 
+    /** Picks the next living entity by speed descending. */
+    private void startNextTurn() {
+        // filter, sort, and pick the highest-speed alive combatant
+        currentEntity = allEntities.stream()
+                .filter(ICombatEntity::isAlive)
+                .max(Comparator.comparingInt(ICombatEntity::getSpeed))
+                .orElse(null);
+        // (should never be null here unless all dead)
+    }
+
+    public ICombatEntity getCurrentEntity() {
+        return currentEntity;
+    }
+
+    public boolean isBattleOver() {
+        boolean anyPlayer = allEntities.stream()
+                .filter(e -> e.getTeam() == Team.PLAYER)
+                .anyMatch(ICombatEntity::isAlive);
+        boolean anyEnemy = allEntities.stream()
+                .filter(e -> e.getTeam() == Team.PLAYER)
+                .anyMatch(ICombatEntity::isAlive);
+        return !(anyPlayer && anyEnemy);
+    }
+
+    /** Returns the one player in this fight. */
     public ICombatEntity getPlayerEntity() {
         return allEntities.stream()
                 .filter(e -> e.getTeam() == Team.PLAYER)
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException("No player in this battle!"));
-    }
-    public List<ICombatEntity> getEnemiesOf(Team team) {
-        List<ICombatEntity> list = new ArrayList<>();
-        for (ICombatEntity e : allEntities) {
-            if (e.getTeam() != team && e.isAlive()) list.add(e);
-        }
-        return list;
+                .orElseThrow(() -> new IllegalStateException("No player in battle"));
     }
 
+    /** Returns all living entities not on the given team. */
+    public List<ICombatEntity> getEnemiesOf(Team team) {
+        return allEntities.stream()
+                .filter(ICombatEntity::isAlive)
+                .filter(e -> e.getTeam() != team)
+                .collect(Collectors.toList());
+    }
+    public static long getTurnDelayMs() {
+        return TURN_DELAY_MS;
+    }
+    /** Returns all living combatants. */
     public List<ICombatEntity> getAllEntities() {
-        List<ICombatEntity> list = new ArrayList<>();
-        for (ICombatEntity e : allEntities) {
-            if (e.isAlive()) list.add(e);
-        }
-        return list;
+        return allEntities.stream()
+                .filter(ICombatEntity::isAlive)
+                .collect(Collectors.toList());
     }
 }
