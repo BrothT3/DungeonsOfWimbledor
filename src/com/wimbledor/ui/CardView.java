@@ -40,4 +40,11 @@ public class CardView extends JPanel {
         revalidate();
         repaint();
     }
+    public void clear() {
+        titleLabel.setText("");
+        descArea.setText("");
+        buttonsPanel.removeAll();
+        revalidate();
+        repaint();
+    }
 }

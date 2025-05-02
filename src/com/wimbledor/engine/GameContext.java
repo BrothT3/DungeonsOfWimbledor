@@ -58,14 +58,19 @@ public class GameContext {
      * When that battle finishes, onEncounterComplete() is called,
      * so your CardController will draw the next encounter card.
      */
-    public static void startBattleWith(Player p, BattleCard card) {
-        // Capture UI callback so it runs back on the EDT
+    public static TurnManager startBattleWith(Player p, BattleCard card) {
+        // make your resume‐narrative callback
         Runnable resumeNarrative = () -> SwingUtilities.invokeLater(onEncounterComplete);
+
+        // 1) create the TurnManager
+        TurnManager tm = new TurnManager(p, card.getMonsters(), resumeNarrative);
+
+        // 2) hand that TurnManager into your GameLoop
         gameLoop = new GameLoop();
-        gameLoop.startBattle(p,
-                card.getMonsters(),
-                resumeNarrative,
-                TurnManager.getTurnDelayMs());
+        gameLoop.startBattle(tm, TurnManager.getTurnDelayMs());
+
+        // 3) return it so callers can stash/use it
+        return tm;
     }
     public static void playerActionResolved() {
         if (gameLoop != null) gameLoop.playerResolved();

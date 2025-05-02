@@ -6,32 +6,25 @@ import com.wimbledor.engine.GameContext;
 import com.wimbledor.entities.ICombatEntity;
 import com.wimbledor.entities.Player;
 
-import java.util.ArrayList;
+import javax.swing.SwingUtilities;
 import java.util.List;
 import java.util.Objects;
 
 /**
- * Represents a battle encounter composed of multiple combat entities.
- * When selected, it delegates execution to the GameContext to run the battle.
+ * A battle encounter.  Clicking "Fight" will launch the combat engine and
+ * keep you on this card until the fight completes.
  */
 public class BattleCard implements ICard {
     private final String title;
     private final List<ICombatEntity> monsters;
 
-    /**
-     * @param title Display name for this battle.
-     * @param monsters The list of entities the player will face.
-     */
     public BattleCard(String title, List<ICombatEntity> monsters) {
-        this.title = Objects.requireNonNull(title);
-        this.monsters = new ArrayList<>(Objects.requireNonNull(monsters));
+        this.title    = Objects.requireNonNull(title);
+        this.monsters = List.copyOf(Objects.requireNonNull(monsters));
     }
 
-    /**
-     * Accessor for the combat engine.
-     */
     public List<ICombatEntity> getMonsters() {
-        return List.copyOf(monsters);
+        return monsters;
     }
 
     @Override
@@ -46,18 +39,26 @@ public class BattleCard implements ICard {
 
     @Override
     public List<CardOption> getOptions() {
-        // Single option to start the battle
+        // Always show one "Fight" button that:
+        //  1) kicks off the combat engine
+        //  2) returns *this* so the controller stays in battle mode
         return List.of(new CardOption(
                 "F",
                 "Fight",
-                (Player player) -> GameContext.startBattleWith(player, this),
-                null // after battle completes, control returns via callback
+                (Player p) -> GameContext.startBattleWith(p, this),
+                this       // ← return this BattleCard, not null
         ));
     }
 
     @Override
     public ICard onOptionSelected(String code) {
-        // Only one option; return null to signal next encounter
-        return null;
+        // Never exit the card on selection; always return self
+        return this;
     }
+
+    /**
+     * This method will be invoked by GameContext when the fight is truly over.
+     * Typically your GameContext.startBattleWith sets the onEncounterComplete()
+     * callback, which your controller uses to flip out of battle mode and draw the next card.
+     */
 }

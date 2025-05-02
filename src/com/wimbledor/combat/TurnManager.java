@@ -137,6 +137,12 @@ public class TurnManager {
         return list;
     }
 
+    public ICombatEntity getPlayerEntity() {
+        return allEntities.stream()
+                .filter(e -> e.getTeam() == Team.PLAYER)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No player in this battle!"));
+    }
     public List<ICombatEntity> getEnemiesOf(Team team) {
         List<ICombatEntity> list = new ArrayList<>();
         for (ICombatEntity e : allEntities) {

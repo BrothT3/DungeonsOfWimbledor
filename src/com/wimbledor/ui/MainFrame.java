@@ -12,6 +12,7 @@ import java.awt.*;
 
 public class MainFrame extends JFrame {
     private final CardView cardView;
+    private final JSplitPane split;         // this is your field
     private final PlayerInfoPanel infoPanel;
     private final CardController controller;
 
@@ -27,14 +28,6 @@ public class MainFrame extends JFrame {
         // Right: player stats / equipment / consumables
         infoPanel = new PlayerInfoPanel(player);
 
-        JSplitPane split = new JSplitPane(
-                JSplitPane.HORIZONTAL_SPLIT,
-                cardScroll,
-                infoPanel
-        );
-        split.setResizeWeight(0.7);
-        add(split, BorderLayout.CENTER);
-
         // Build the encounter deck and controller
         EncounterDeck deck = new EncounterDeck(EncounterFactory.generateEncounters());
         controller = new CardController(deck, cardView, this);
@@ -43,16 +36,39 @@ public class MainFrame extends JFrame {
         GameContext.setPlayer(player);
         GameContext.setOnEncounterComplete(controller::drawNext);
 
+        // Equip a starter weapon
+        EquipmentManager.getInstance().equipWeapon(new CruddySword());
+
+        // Now initialize your split field **once**, using the scroll pane on left
+        split = new JSplitPane(
+                JSplitPane.HORIZONTAL_SPLIT,
+                cardScroll,
+                infoPanel
+        );
+        split.setResizeWeight(0.7);
+        add(split, BorderLayout.CENTER);
+
         pack();
         setLocationRelativeTo(null);
         setVisible(true);
-        EquipmentManager.getInstance().equipWeapon(new CruddySword());
+
+        // Kick off the first card draw and stats refresh
         controller.start();
         infoPanel.refresh();
     }
 
+    /** Swap out whatever is on the left (cardView or ActionPanel) */
+    public void setCenterComponent(JComponent comp) {
+        split.setLeftComponent(comp);
+        split.revalidate();
+        split.repaint();
+    }
+
     /** Called after any change (narrative choice or battle) */
     public void refresh() {
+        cardView.repaint();
         infoPanel.refresh();
+        revalidate();
+        repaint();
     }
 }

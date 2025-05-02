@@ -20,19 +20,17 @@ public class GameLoop {
 
     /**
      * Start the loop for a battle. Non-blocking; logic runs on scheduler thread.
-     * @param player the player entity
-     * @param enemies list of enemies
-     * @param onBattleOver callback when battle ends
+     //* @param player the player entity
+    // * @param enemies list of enemies
+    // * @param onBattleOver callback when battle ends
      * @param tickRateMs how often to call update
      */
-    public void startBattle(Player player, List<ICombatEntity> enemies, Runnable onBattleOver, long tickRateMs) {
-        this.tickRateMs = tickRateMs;
-        turnManager = new TurnManager(player, enemies, () -> {
-            onBattleOver.run();
-            stop();
-        });
-        // schedule fixed-rate ticks
-        scheduler.scheduleAtFixedRate(() -> turnManager.update(tickRateMs), 0, tickRateMs, TimeUnit.MILLISECONDS);
+    public void startBattle(TurnManager tm, long tickRateMs) {
+        this.turnManager = tm;
+        scheduler.scheduleAtFixedRate(
+                () -> turnManager.update(tickRateMs),
+                0, tickRateMs, TimeUnit.MILLISECONDS
+        );
     }
 
     /**

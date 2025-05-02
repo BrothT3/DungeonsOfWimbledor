@@ -2,12 +2,15 @@ package com.wimbledor.ui;
 
 import com.wimbledor.assets.BattleCard;
 import com.wimbledor.assets.ICard;
+import com.wimbledor.combat.TurnManager;
 import com.wimbledor.engine.EncounterDeck;
 import com.wimbledor.engine.GameContext;
+import com.wimbledor.entities.ICombatEntity;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.function.BiConsumer;
 
 public class CardController implements ActionListener {
     private final EncounterDeck deck;
@@ -15,12 +18,23 @@ public class CardController implements ActionListener {
     private final MainFrame frame;
     private ICard current;
     private boolean inBattle = false;
-
+    private TurnManager turnManager;
     public CardController(EncounterDeck deck, CardView view, MainFrame frame) {
         this.deck  = deck;
         this.view  = view;
         this.frame = frame;
+
+
     }
+    private void swapCenter(JComponent comp, boolean refresh) {
+        frame.setCenterComponent(comp);
+        if (refresh) frame.refresh();
+    }
+    private void restoreNarrative() {
+        swapCenter(view, true);
+    }
+
+
 
     public void start() {
         // Register to be notified when a battle (via GameLoop) finishes:
@@ -45,45 +59,51 @@ public class CardController implements ActionListener {
         frame.refresh();
     }
 
+
     @Override
     public void actionPerformed(ActionEvent e) {
         String code = e.getActionCommand();
         ICard next = current.onOptionSelected(code);
 
+        // 1) Entering a new battle
         if (!inBattle && next instanceof BattleCard battle) {
-            System.out.println("Entering battle with " + battle);
-            // 1) Enter battle state
             inBattle = true;
             current  = battle;
             view.display(current, this);
 
-            // 2) Kick off the GameLoop / TurnManager
-            GameContext.startBattleWith(GameContext.getPlayer(), battle);
+            // launch the engine battle loop and keep its TurnManager
+            this.turnManager = GameContext.startBattleWith(GameContext.getPlayer(), battle);
 
-            // Don't call playerResolved here—battle launch isn't a player turn.
+            // immediately swap in the player's combat‐action UI
+            view.clear();
+            ActionPanel ap = new ActionPanel(this.turnManager, () -> {
+                GameContext.playerActionResolved();
+            });
+            swapCenter(ap, true);
+
+            return;
         }
-        else if (!inBattle && next != null) {
-            System.out.println("Narrative branch to " + next);
-            // Narrative branch/stage change
+
+        // 2) Player clicked a combat-action button
+        if (inBattle && current instanceof BattleCard) {
+            // ActionPanel already executed the ICombatAction;
+            // now signal the engine to advance to the next turn
+            GameContext.playerActionResolved();
+            return;
+        }
+
+        // 3) Narrative branches or encounter end
+        if (!inBattle && next != null) {
+            // still inside the same encounter → redraw it
             current = next;
             view.display(current, this);
-        }
-        else if (!inBattle) {
-            System.out.println("Encounter ended, drawing next");
-            // Encounter over: move to next
+        } else if (!inBattle) {
+
+            // no more options → advance to the next encounter card
             drawNext();
         }
-        else {
-            System.out.println("In battle, player action resolved");
-            // inBattle == true: this must be a player combat action
-            // Execute it via the view/current card logic
-            // (your BattleCard.getOptions() effects should have already run)
 
-            // Tell the engine "the player has finished their turn"
-            GameContext.playerActionResolved();
-        }
-
-        // Finally, refresh to show updated HP/buffs/etc.
         frame.refresh();
     }
 }
+
