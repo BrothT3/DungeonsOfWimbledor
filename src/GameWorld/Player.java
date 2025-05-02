@@ -2,7 +2,7 @@ package GameWorld;
 
 import GameWorld.Enums.Team;
 import GameWorld.Equipment.Accessory;
-import GameWorld.Equipment.IEquipment;
+import GameWorld.Interfaces.IEquipment;
 import GameWorld.Equipment.Weapon;
 import GameWorld.Interfaces.ICombatAction;
 import GameWorld.Interfaces.ICombatEntity;
@@ -50,20 +50,7 @@ public class Player implements ICombatEntity {
         return null;
     }
 
-    @Override
-    public List<ICombatAction> getActions() {
-        List<ICombatAction> actions = new ArrayList<>();
 
-        Weapon w = EquipmentManager.GetInstance().getWeapon();
-        if (w != null) {
-            actions.addAll(w.getActions());
-        }
-        Accessory a = EquipmentManager.GetInstance().getAccessory();
-        if (a instanceof IEquipment provider) {
-            actions.addAll(provider.getActions());
-        }
-        return actions;
-    }
 
     @Override public void setHP(int value) {
         this.hp = Math.min(value, maxHP);

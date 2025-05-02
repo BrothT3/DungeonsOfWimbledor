@@ -1,5 +1,6 @@
 package GameWorld.Equipment;
 
+import GameWorld.Interfaces.IEquipment;
 import GameWorld.Player;
 
 public abstract class Armor implements IEquipment {

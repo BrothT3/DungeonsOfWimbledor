@@ -2,7 +2,7 @@ package GameWorld;
 
 import Cards.*;
 import Cards.MonsterCards.*;
-import Cards.EventCards.*;
+
 
 import java.util.*;
 
@@ -61,29 +61,6 @@ public class CardFactory {
         };
     }
 
-    public static BaseCard createRandomEventCard(int level) {
-        List<BaseCard> events = switch (level) {
-            case 1 -> List.of(
-                    new HealingCard(),
-                    new TrapCard(),
-                    new StatSwapCard(),
-                    new TreasureCard()
-            );
-            case 2 -> List.of(
-                    // new GreaterHealingCard(),
-                    // new DeadlyTrapCard(),
-                    // new PowerBoostCard(),
-                    // new EquipmentCard()
-            );
-            case 3 -> List.of(
-                    // new GreaterHealingCard(),
-                    // new DeadlyTrapCard(),
-                    //  new PowerBoostCard(),
-                    //  new CurseCard(),
-                    new LegendaryTreasureCard()
-            );
-            default -> List.of(new HealingCard());
-        };
-        return events.get(random.nextInt(events.size()));
-    }
+
+
 }

@@ -1,6 +1,9 @@
 package GameWorld;
 
 import GameWorld.Equipment.*;
+import GameWorld.Interfaces.ICombatAction;
+import GameWorld.Interfaces.ICombatEntity;
+
 import java.util.*;
 
 public class EquipmentManager {
@@ -9,14 +12,26 @@ public class EquipmentManager {
     private Weapon weapon;
     private Armor armor;
     private Accessory accessory;
+
     private final List<Consumable> consumables = new ArrayList<>();
 
-    private EquipmentManager() {}
+    private EquipmentManager() {
+    }
 
     public static EquipmentManager GetInstance() {
         if (INSTANCE == null) INSTANCE = new EquipmentManager();
         return INSTANCE;
     }
+
+    public List<ICombatAction> getEquipmentActions(ICombatAction actor) {
+        List<ICombatAction> actions = new ArrayList<>();
+        actions.addAll(armor.getActions());
+        actions.addAll(weapon.getActions());
+        actions.addAll((accessory.getActions()));
+        return actions;
+    }
+
+
 
     public void equipWeapon(Weapon w, Player player) {
         this.weapon = w;
@@ -46,8 +61,19 @@ public class EquipmentManager {
         }
     }
 
-    public Weapon getWeapon() { return weapon; }
-    public Armor getArmor() { return armor; }
-    public Accessory getAccessory() { return accessory; }
-    public List<Consumable> getConsumables() { return consumables; }
+    public Weapon getWeapon() {
+        return weapon;
+    }
+
+    public Armor getArmor() {
+        return armor;
+    }
+
+    public Accessory getAccessory() {
+        return accessory;
+    }
+
+    public List<Consumable> getConsumables() {
+        return consumables;
+    }
 }

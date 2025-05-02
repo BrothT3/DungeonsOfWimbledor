@@ -3,7 +3,9 @@ package Cards;
 import GameWorld.Interfaces.ICombatEntity;
 import GameWorld.Player;
 import GameWorld.TurnManager;
-import UI.GameFrame;
+import UI.*;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -42,16 +44,14 @@ public class BattleCard extends BaseCard {
                 .collect(Collectors.joining("\n"));
     }
 
+
     @Override
     public void onInteract(Player player, String ignored) {
-        // build a TurnManager with player + all the monsters
-        List<ICombatEntity> combatants = monsters.stream()
-                .map(m -> (ICombatEntity)m)
-                .collect(Collectors.toList());
+        // we only ever hit this once, to initiate the battle
+        List<ICombatEntity> combatants = new ArrayList<>(monsters);
         combatants.add(0, player);
-
         TurnManager tm = new TurnManager(combatants);
-        GameFrame.getInstance().startBattle(this);;
+        engine.startBattle(this, tm);
     }
 
     public List<MonsterCard> getMonsters() {

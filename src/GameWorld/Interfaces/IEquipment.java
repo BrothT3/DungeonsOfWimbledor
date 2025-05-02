@@ -1,6 +1,5 @@
-package GameWorld.Equipment;
+package GameWorld.Interfaces;
 
-import GameWorld.Interfaces.ICombatAction;
 import GameWorld.Player;
 
 import java.util.List;

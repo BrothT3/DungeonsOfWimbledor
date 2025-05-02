@@ -13,16 +13,25 @@ public class TurnManager {
     private ICombatEntity currentEntity;
 
     public TurnManager(List<ICombatEntity> combatants) {
+        // 1) record everyone
         this.allEntities.addAll(combatants);
-        this.turnQueue.addAll(combatants);
+        // 2) seed the queue with only the ones still alive
+        refillQueue();
+        // 3) immediately pull off the first turn
+        startNextTurn();
     }
 
+    /** Advance to the next alive actor. */
     public void startNextTurn() {
         if (turnQueue.isEmpty()) refillQueue();
         currentEntity = turnQueue.poll();
     }
 
+    /** Never returns null: will auto‐advance if you forgot. */
     public ICombatEntity getCurrentEntity() {
+        if (currentEntity == null) {
+            startNextTurn();
+        }
         return currentEntity;
     }
 
@@ -33,12 +42,15 @@ public class TurnManager {
     }
 
     public boolean isBattleOver() {
-        Set<Team> aliveTeams = allEntities.stream()
+        long aliveTeams = allEntities.stream()
                 .filter(e -> e.getHP() > 0)
                 .map(ICombatEntity::getTeam)
-                .collect(Collectors.toSet());
-        return aliveTeams.size() <= 1;
+                .distinct()
+                .count();
+        return aliveTeams <= 1;
     }
+
+
 
     public List<ICombatEntity> getEntitiesOnTeam(Team team) {
         return allEntities.stream()
@@ -47,9 +59,11 @@ public class TurnManager {
     }
 
     public List<ICombatEntity> getEnemiesOf(Team team) {
-        return allEntities.stream()
+        List<ICombatEntity> var = allEntities.stream()
                 .filter(e -> e.getHP() > 0 && e.getTeam() != team)
                 .collect(Collectors.toList());
+        System.out.println("Enemy list size = " + var.size());
+        return var;
     }
 
     public List<ICombatEntity> getAllEntities() {

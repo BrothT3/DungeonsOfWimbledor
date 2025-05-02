@@ -2,57 +2,65 @@ package GameWorld;
 
 import Cards.MonsterCard;
 import GameWorld.Interfaces.ICombatEntity;
-import UI.CardPanel;
-import UI.GameFrame;
-import UI.GameUI;
+import UI.*;
+import GameWorld.CombatLogger;
 
 import java.awt.*;
 import java.util.Random;
 
 public class CombatUtils {
 
-    private static final Random random = new Random();
+    private static final Random RANDOM = new Random();
+
+    // ← this is your new back‐door into the UI
+    private static CombatLogger logger = (msg, col) -> {};
+
+    /** Call once at startup to wire up your UI. */
+    public static void setLogger(CombatLogger l) {
+        logger = l != null ? l : (m, c) -> {};
+    }
 
     public static void entityTurn(ICombatEntity attacker, ICombatEntity defender) {
         for (int i = 0; i < attacker.getAttackCount(); i++) {
             boolean hit = didHit(attacker.getAccuracy(), defender.getEvasion());
-
             if (hit) {
-                boolean crit = random.nextFloat() < (attacker.getCritChance() / 100f);
-                int baseDamage = calculateDamage(attacker.getAttack(), defender.getDefense(), attacker.getPenetration());
-                int finalDamage = crit ? Math.round(baseDamage * attacker.getCritDamage()) : baseDamage;
+                boolean crit = RANDOM.nextFloat() < attacker.getCritChance()/100f;
+                int dmg0 = calculateDamage(
+                        attacker.getAttack(), defender.getDefense(), attacker.getPenetration()
+                );
+                int finalDmg = crit
+                        ? Math.round(dmg0 * attacker.getCritDamage())
+                        : dmg0;
+                defender.takeDamage(finalDmg);
 
-                defender.takeDamage(finalDamage);
-
-                String msg = getName(attacker) + " hit " + getName(defender) +
-                        " for " + finalDamage + (crit ? " (CRIT!)" : "");
-                Color flashColor = crit
+                String line = getName(attacker) + " hit " + getName(defender) +
+                        " for " + finalDmg + (crit ? " (CRIT!)" : "");
+                Color flash = crit
                         ? Color.YELLOW
                         : (attacker instanceof Player ? Color.GREEN : Color.RED);
-
-                logToUI(msg, flashColor);
+                logger.log(line, flash);
             } else {
-                String msg = getName(attacker) + " missed " + getName(defender) + "!";
-                logToUI(msg, Color.LIGHT_GRAY);
+                logger.log(getName(attacker) + " missed " + getName(defender) + "!",
+                        Color.LIGHT_GRAY);
             }
         }
     }
 
     public static void defendAction(ICombatEntity entity) {
-        if (entity instanceof Player player) {
-            player.setTempDefenseBoost(5); //should be made to disappear eventuelt
-            logToUI("Player braces for impact!", Color.CYAN);
+        if (entity instanceof Player p) {
+            p.setTempDefenseBoost(5);
+            logger.log("Player braces for impact!", Color.CYAN);
         } else {
-            logToUI(getName(entity) + " defends!", Color.CYAN);
+            logger.log(getName(entity) + " defends!", Color.CYAN);
         }
     }
 
     public static void accessoryAction(Player player) {
         if (player.hasAccessoryAction()) {
             player.useAccessoryAction();
-            logToUI("Player used their accessory!", Color.MAGENTA);
+            logger.log("Player used their accessory!", Color.MAGENTA);
         } else {
-            logToUI("Player skipped their turn.");
+            logger.log("Player skipped their turn.", null);
         }
     }
 
@@ -60,7 +68,7 @@ public class CombatUtils {
 
     private static boolean didHit(int accuracy, int evasion) {
         int hitChance = Math.max(10, Math.min(90, accuracy - evasion));
-        return random.nextInt(100) < hitChance;
+        return RANDOM.nextInt(100) < hitChance;
     }
 
     private static int calculateDamage(int attack, int defense, int penetration) {
@@ -74,18 +82,5 @@ public class CombatUtils {
         return "Entity";
     }
 
-    public static void logToUI(String message) {
-        logToUI(message, null);
-    }
 
-    private static void logToUI(String message, Color flashColor) {
-        GameFrame frame = GameFrame.getInstance();
-        if (frame == null) return;
-        GameUI ui = frame.getGameUI();
-        if (ui == null) return;
-
-        CardPanel panel = ui.getCardPanel();
-        panel.log(message);
-        if (flashColor != null) panel.flash(flashColor);
-    }
 }

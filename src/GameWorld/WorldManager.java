@@ -3,78 +3,77 @@ package GameWorld;
 import Cards.BaseCard;
 import Cards.BattleCard;
 
-import javax.swing.SwingWorker;
 import java.util.*;
-import java.util.function.Consumer;
 
 public class WorldManager {
-    private final Stack<BaseCard> deck = new Stack<>();
+    private final List<BaseCard> deck = new ArrayList<>();
     private int currentLevel = 1;
     private final Random random = new Random();
     private BaseCard currentCard;
 
-    // --- synchronous deck generator (unchanged) ---
+
+    // instead of Deque or Stack, just:
+
+
     public void generateDeck() {
         deck.clear();
         for (int i = 0; i < 20; i++) {
             if (i % 5 == 0) {
-                deck.push(CardFactory.createMonsterCard(currentLevel));
+                deck.add(CardFactory.createMonsterCard(currentLevel));
             } else if (random.nextBoolean()) {
-                deck.push(CardFactory.createBattleCard(currentLevel));
+                deck.add(CardFactory.createBattleCard(currentLevel));
             } else {
-                deck.push(CardFactory.createEncounterCard(currentLevel));
+                deck.add(CardFactory.createEncounterCard(currentLevel));
             }
         }
         Collections.shuffle(deck);
     }
 
-    public void generateDeckAsync(Runnable onComplete) {
-        new SwingWorker<Void, Void>() {
-            @Override
-            protected Void doInBackground() {
-                generateDeck();
-                return null;
-            }
-            @Override
-            protected void done() {
-                onComplete.run();
-            }
-        }.execute();
-    }
-
-    public boolean hasMoreCards() {
-        return !deck.isEmpty();
-    }
-
     public BaseCard drawCard() {
         if (deck.isEmpty()) return null;
-        currentCard = deck.pop();
+        // use LIFO to simulate a stack:
+        currentCard = deck.remove(deck.size() - 1);
         return currentCard;
     }
 
+    public List<BaseCard> getDeck() {
+        return deck;
+    }
+
+    /**
+     * Return whatever was last drawn (may be null).
+     */
     public BaseCard getCurrentCard() {
         return currentCard;
     }
 
-    public Stack<BaseCard> getDeck() {
-        return deck;
-    }
-
+    /**
+     * How many cards remain in the deck.
+     */
     public int getDeckSize() {
         return deck.size();
     }
 
+    /**
+     * Advance to next level: bump level, regenerate synchronously.
+     */
     public void nextLevel() {
         currentLevel++;
-        // you can choose synchronous or async here:
         generateDeck();
     }
 
-    public int getCurrentLevel() {
-        return currentLevel;
+    /**
+     * Reset deck to level 1 and build it immediately.
+     */
+    public void reset() {
+        currentLevel = 1;
+        generateDeck();
     }
 
-    public void setCurrentCard(BaseCard card) {
-        currentCard = card;
+    /**
+     * For UI: expose an unmodifiable view of the remaining deck.
+     */
+    public List<BaseCard> peekDeck() {
+        return Collections.unmodifiableList(new ArrayList<>(deck));
     }
 }

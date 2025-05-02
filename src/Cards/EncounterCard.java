@@ -1,7 +1,12 @@
 package Cards;
 
+import GameWorld.Interfaces.ICombatEntity;
 import GameWorld.Player;
-import UI.GameFrame;
+import GameWorld.TurnManager;
+import UI.MainFrame;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -38,35 +43,35 @@ public class EncounterCard extends BaseCard {
 
     @Override
     public void onInteract(Player player, String choiceCode) {
-        // 1) find the matching option
         StageOption opt = current.getOptions().stream()
                 .filter(o -> o.getCode().equals(choiceCode))
-                .findFirst()
-                .orElse(null);
+                .findFirst().orElse(null);
         if (opt == null) return;
 
-        // 2) apply any stat/item effect immediately
+        // 1) apply any immediate stat/item effects
         opt.applyEffect(player);
 
-        // 3) if this choice spawns a battle, hand off BOTH parent + battle
+        // 2) if this choice spawns a battle → hand off to engine
         if (opt.hasNextBattle()) {
             BattleCard battle = opt.getNextBattle();
-            // remember where to return when fight is over
             battle.setPostBattleStage(opt.getNextStage());
-            // explicitly pass 'this' parent encounter into your GameFrame
-            GameFrame.getInstance().startBattle(battle);
+            // prepare its TurnManager:
+            List<ICombatEntity> combatants = new ArrayList<>(battle.getMonsters());
+            combatants.add(0, player);
+            TurnManager tm = new TurnManager(combatants);
+            engine.startBattle(battle, tm);
             return;
         }
 
-        // 4) otherwise if there’s a next stage, advance and refresh UI
+        // 3) advance to next stage if any
         if (opt.hasNextStage()) {
             current = opt.getNextStage();
-            GameFrame.getInstance().updateUI();
+            engine.refreshUI();
             return;
         }
 
-        // 5) no more stages or battles → encounter is done
-        GameFrame.getInstance().onEncounterComplete();
+        // 4) no more choices → encounter done
+        engine.onEncounterComplete();
     }
 
     public void advanceTo(EncounterStage stage) {
