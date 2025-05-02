@@ -28,4 +28,12 @@ public class Slash implements ICombatAction {
         // Use our unified resolveAttack which handles buffs, penetration, crits, etc.
         CombatUtils.resolveAttack(actor, target);
     }
+    @Override
+    public String getLogMessage(ICombatEntity actor, ICombatEntity target,
+                                boolean hit, boolean crit, int amount) {
+        if (!hit) return actor.getName() + " tried to slash, but missed!";
+        return actor.getName() + " swings his sword and slashes " + target.getName()
+                + " dealing " + (-amount) + " damage"
+                + (crit ? "!" : "");
+    }
 }

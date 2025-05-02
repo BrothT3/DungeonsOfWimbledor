@@ -1,6 +1,7 @@
 // src/com/wimbledor/entities/BaseNPC.java
 package com.wimbledor.entities;
 
+import com.wimbledor.combat.CombatUtils;
 import com.wimbledor.combat.ICombatAction;
 import com.wimbledor.combat.TurnManager;
 import com.wimbledor.effects.Buff;
@@ -186,13 +187,24 @@ public abstract class BaseNPC implements ICombatEntity {
 
     @Override
     public void takeTurn(TurnManager tm) {
-        List<ICombatEntity> targets = tm.getEnemiesOf(this.getTeam());
-        targets.removeIf(e -> !e.isAlive());
-        if (actions.isEmpty() || targets.isEmpty()) return;
+        // 1) Who to attack?  Use the TM helper to find living players.
+        List<ICombatEntity> players = new ArrayList<>();
+        players.add(tm.getPlayerEntity());
+        if (actions.isEmpty() || players.isEmpty()) return;
 
-        ICombatAction choice = actions.get(new Random().nextInt(actions.size()));
-        choice.modifyStats(this, targets);
-        ICombatEntity target = targets.get(new Random().nextInt(targets.size()));
-        choice.execute(this, target);
+        // 2) Pick a random combat action
+        ICombatAction choice = actions
+                .get(new Random().nextInt(actions.size()));
+
+        // 3) Let it tweak any temporary stats
+        choice.modifyStats(this, players);
+
+        // 4) Choose one player at random
+        ICombatEntity target = players
+                .get(new Random().nextInt(players.size()));
+
+
+        // 5) **Centralize** your resolution (buff hooks, hit/crit roll, damage, onPost hooks)
+        CombatUtils.executeAction(choice, this, List.of(target));
     }
 }

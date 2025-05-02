@@ -33,4 +33,36 @@ public interface ICombatAction {
     default void modifyStats(ICombatEntity actor, List<ICombatEntity> targets) {
         // no-op
     }
+    /**
+     * Build a log‐friendly description of what happened.
+     *
+     * @param actor  who performed the action
+     * @param target who it was performed on
+     * @param hit    whether it actually landed
+     * @param crit   whether it was a critical hit
+     * @param amount how much HP was changed (negative = damage, positive = heal)
+     */
+    default String getLogMessage(ICombatEntity actor,
+                                 ICombatEntity target,
+                                 boolean hit,
+                                 boolean crit,
+                                 int amount) {
+        // Sensible default for simple attacks:
+        if (!hit) return actor.getName() + " missed " + target.getName() + "!";
+        String verb = getName().toLowerCase();
+        String critSuffix = crit ? " (crit!)" : "";
+        if (amount < 0) {
+            return actor.getName()
+                    + " " + verb
+                    + " " + target.getName()
+                    + " for " + (-amount) + " damage"
+                    + critSuffix;
+        } else {
+            return actor.getName()
+                    + " " + verb
+                    + " " + target.getName()
+                    + " and healed " + amount
+                    + critSuffix;
+        }
+    }
 }

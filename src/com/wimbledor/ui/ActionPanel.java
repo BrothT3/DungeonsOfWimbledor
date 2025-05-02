@@ -5,7 +5,9 @@ import com.wimbledor.combat.CombatUtils;
 import com.wimbledor.combat.ICombatAction;
 import com.wimbledor.combat.TargetMode;
 import com.wimbledor.combat.TurnManager;
+import com.wimbledor.engine.GameContext;
 import com.wimbledor.entities.ICombatEntity;
+import com.wimbledor.entities.Player;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -17,6 +19,7 @@ import java.util.function.Consumer;
  * Yellow‐background panel listing the player's ICombatActions.
  */
 public class ActionPanel extends JPanel {
+
     public ActionPanel() {
         // empty ctor; actual buttons populated in updateActions(...)
     }
@@ -69,6 +72,10 @@ public class ActionPanel extends JPanel {
                     }
                     case SINGLE_ENEMY -> {
                         var list = tm.getEnemiesOf(tm.getPlayerEntity().getTeam());
+                        if (list.isEmpty()) {
+                            // no enemies left, nothing to do
+                            return;
+                        }
                         if (list.size() == 1) {
                             targets = list;
                         } else {
@@ -80,7 +87,7 @@ public class ActionPanel extends JPanel {
                     default -> { targets = List.of(); }
                 }
                 // execute & log
-                CombatUtils.executeAction(act, tm.getPlayerEntity(), targets);
+                CombatUtils.executeAction(act, GameContext.getPlayer(), targets, onActionComplete);
                 onActionComplete.accept(
                         tm.getPlayerEntity().getName()
                                 + " uses " + act.getName()

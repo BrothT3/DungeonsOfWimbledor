@@ -15,6 +15,7 @@ public class TurnManager {
     private final Runnable onBattleOver;
     public static long TURN_DELAY_MS = 500;
 
+
     // state of whose turn it is
     private ICombatEntity currentEntity;
 

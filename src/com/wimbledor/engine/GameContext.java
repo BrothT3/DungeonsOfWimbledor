@@ -6,6 +6,7 @@ import com.wimbledor.combat.TurnManager;
 import com.wimbledor.entities.Player;
 
 import javax.swing.*;
+import java.util.function.Consumer;
 
 /**
  * A simple global context for wiring together narrative encounters,
@@ -19,6 +20,15 @@ public class GameContext {
     private static Player player;
     private static Runnable onEncounterComplete;
     private static GameLoop gameLoop;
+    private static Consumer<String> LOG;
+
+    public static void setLogger(Consumer<String> log) {
+        LOG = log;
+    }
+
+    public static void log(String msg) {
+        if (LOG != null) SwingUtilities.invokeLater(() -> LOG.accept(msg));
+    }
 
     /**
      * Set the singleton Player early in your bootstrap (e.g. MainFrame).

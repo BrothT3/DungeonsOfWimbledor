@@ -6,6 +6,7 @@ import com.wimbledor.entities.ICombatEntity;
 
 import java.util.List;
 import java.util.Random;
+import java.util.function.Consumer;
 
 /**
  * Central combat resolution:
@@ -66,7 +67,7 @@ public class CombatUtils {
      * 3) action.execute(...) actual effect
      * 4) Buff hooks (onActionEnd)
      */
-    public static void executeAction(ICombatAction action,
+   /* public static void executeAction(ICombatAction action,
                                      ICombatEntity actor,
                                      List<ICombatEntity> targets) {
         // Pre-action buff hooks
@@ -86,5 +87,52 @@ public class CombatUtils {
         for (Buff b : actor.getBuffs()) b.onActionEnd(actor, action);
         for (ICombatEntity tgt : targets)
             for (Buff b : tgt.getBuffs()) b.onActionEnd(tgt, action);
+    }*/
+    /**
+     * Executes an ICombatAction and logs each target result.
+     *
+     * @param action    the combat action to run
+     * @param actor     the entity performing the action
+     * @param targets   the list of targets
+     * @param logger    a consumer that accepts a one‐line log message
+     */
+    public static void executeAction(ICombatAction action,
+                                     ICombatEntity actor,
+                                     List<ICombatEntity> targets,
+                                     Consumer<String> logger) {
+        // 1) Buff hooks (start)
+        for (Buff b : actor.getBuffs())        b.onActionStart(actor, action);
+        for (ICombatEntity tgt : targets)
+            for (Buff b : tgt.getBuffs())      b.onActionStart(tgt, action);
+
+        // 2) Stat tweaks
+        action.modifyStats(actor, targets);
+
+        // 3) For each target, run and log
+        for (ICombatEntity tgt : targets) {
+            int beforeHp = tgt.getCurrentHp();
+
+            // Actual effect (this might call resolveAttack internally)
+            action.execute(actor, tgt);
+
+            int afterHp  = tgt.getCurrentHp();
+            int delta    = afterHp - beforeHp;    // negative = damage, positive = heal
+
+            // If your basic‐attack actions use CombatUtils.resolveAttack,
+            // you can extend resolveAttack to return a (hit,crit,damage) struct.
+            // Here we’ll detect “hit” simply as delta != 0.
+            boolean hit  = delta != 0;
+            boolean crit = false; // you can wire this up if resolveAttack reports it
+
+            // Let the action build its own log message:
+            String msg = action.getLogMessage(actor, tgt, hit, crit, delta);
+            logger.accept(msg);
+        }
+
+        // 4) Buff hooks (end)
+        for (Buff b : actor.getBuffs())        b.onActionEnd(actor, action);
+        for (ICombatEntity tgt : targets)
+            for (Buff b : tgt.getBuffs())      b.onActionEnd(tgt, action);
     }
+
 }
