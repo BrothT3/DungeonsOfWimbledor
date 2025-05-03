@@ -13,18 +13,29 @@ public class GoblinAmbushEncounter implements EncounterProvider {
     @Override
     public EncounterCard create() {
         EncounterStage sneakEnd = new EncounterStage(
-                "You slip past the goblins unseen, heart pounding.",
-                List.of(new StageOption("C", "Continue", p -> p.addExperience(5), null, null))
+                "You got away quickly",
+                List.of(new StageOption("C", "Continue", p -> {}, null, null))
+        );
+        EncounterStage aftermath = new EncounterStage(
+                "The last of the foul cretins lie defeated, and their ill-gotten possesions are now yours",
+                List.of(
+                        new StageOption(
+                                "C", "Collect your spoils",
+                                p -> p.addGold(10),   // reward
+                                null,                 // then advance the deck
+                                null
+                        )
+                )
         );
         // Root
         EncounterStage root = new EncounterStage(
-                "A pack of goblins emerges from the shadows, weapons raised!",
+                "You hear snickering around you in hushed tones. Something nefarious, although not subtle, is skulking in the shadows.",
                 List.of(
-                        new StageOption("F", "Fight the goblins", p -> {
-                        }, null,
+                        new StageOption("F", "Face the enemy", p -> {
+                        }, aftermath,
                                 new BattleCard("Sneaky Bastards!", List.of(new GoblinCard(), new GoblinCard(), new GoblinCard()))
                         ),
-                        new StageOption("S", "Sneak past quietly", p -> {
+                        new StageOption("S", "quickly sprint in the opposite direction", p -> {
                         }, sneakEnd, null)
                 )
         );

@@ -1,3 +1,4 @@
+// src/com/wimbledor/engine/GameContext.java
 package com.wimbledor.engine;
 
 import com.wimbledor.assets.BattleCard;
@@ -6,86 +7,62 @@ import com.wimbledor.combat.TurnManager;
 import com.wimbledor.entities.Player;
 
 import javax.swing.*;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
  * A simple global context for wiring together narrative encounters,
  * battles, and progression.
- * <p>
+ *
  * You must call:
- * GameContext.setPlayer(yourPlayer);
- * GameContext.setOnEncounterComplete(yourController::drawNext);
+ *   GameContext.setPlayer(yourPlayer);
+ * And:
+ *   GameContext.setLogger(yourLogConsumer);
  */
 public class GameContext {
     private static Player player;
-    private static Runnable onEncounterComplete;
     private static Consumer<String> LOG;
 
+    /** Set a UI‐safe logger callback (e.g. logPanel::append). */
     public static void setLogger(Consumer<String> log) {
         LOG = log;
     }
 
+    /** Thread‐safe logging via SwingUtilities.invokeLater. */
     public static void log(String msg) {
         if (LOG != null) SwingUtilities.invokeLater(() -> LOG.accept(msg));
     }
 
-    /**
-     * Set the singleton Player early in your bootstrap (e.g. MainFrame).
-     */
+    /** Store your singleton Player. */
     public static void setPlayer(Player p) {
         player = p;
     }
 
-    /**
-     * Retrieve the singleton Player anywhere.
-     */
+    /** Retrieve the singleton Player. */
     public static Player getPlayer() {
         return player;
     }
 
     /**
-     * Register the callback that should run whenever an encounter
-     * finishes (either by narrative end or by battle end).
-     * Typically your CardController.drawNext().
-     */
-    public static void setOnEncounterComplete(Runnable handler) {
-        onEncounterComplete = handler;
-    }
-
-    /**
-     * Call this when a narrative encounter tree finishes
-     * or a battle ends; it advances to the next ICard.
-     */
-    public static void onEncounterComplete() {
-        if (onEncounterComplete != null) {
-            onEncounterComplete.run();
-        }
-    }
-
-    /**
      * Immediately launches a battle using the given BattleCard.
-     * When that battle finishes, onEncounterComplete() is called,
-     * so your CardController will draw the next encounter card.
+     * Post‐combat flow is now handled entirely in CardController.resolve(...).
      */
     public static TurnManager startBattleWith(Player p, BattleCard card) {
-        // resume‐narrative callback wrapped on the EDT
-        Runnable resumeNarrative = () -> SwingUtilities.invokeLater(onEncounterComplete);
-        // simply construct & return a TurnManager; no background loop
-        return new TurnManager(p, card.getMonsters(), resumeNarrative);
+        List<com.wimbledor.entities.ICombatEntity> combatants = card.getMonsters();
+        // No more narrative callback here—CardController will drive post‐combat.
+        return new TurnManager(player, combatants);
     }
 
-
     /**
-     * (Optional) If you ever need to force‐present a standalone encounter
-     * card mid-run, you can call this. It simply delegates to the same
-     * controller callback (by replacing the current card on screen).
+     * (Optional) If you still need to inject
+     * a standalone narrative card mid‐run,
+     * call this from your controller directly.
      */
     public static void presentEncounter(ICard encounterCard) {
-        // treat this as the end of the _previous_ one
-        onEncounterComplete.run();
-        // then manually inject this new one as the CURRENT card
-        // in your controller you might need a dedicated method like:
-        // cardController.showSpecific(encounterCard);
-        // For now, we assume your controller is designed to accept this run.
+        // You can have your CardController handle this,
+        // e.g. controller.showSpecific(encounterCard);
+        throw new UnsupportedOperationException(
+                "presentEncounter() is now deprecated; use your controller directly."
+        );
     }
 }

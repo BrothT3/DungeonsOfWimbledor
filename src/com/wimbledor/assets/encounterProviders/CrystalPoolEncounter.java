@@ -60,7 +60,7 @@ public class CrystalPoolEncounter implements EncounterProvider {
                 List.of(new Kappa())
         );
         EncounterStage swim2 = new EncounterStage(
-                "Tentacled horrors swirl around you!",
+                "the cooling water washes over your body, renewing your spirit. Then you see a shadow in the blurry water, that you can't quite make out",
                 List.of(new StageOption("F", "Fight them off", p -> {
                 }, swim3, poolBattle))
         );
@@ -79,10 +79,9 @@ public class CrystalPoolEncounter implements EncounterProvider {
                 List.of(new StageOption("C", "Continue", p -> {
                 }, end, null))
         );
-
         // Root
         EncounterStage root = new EncounterStage(
-                "It’s damp in this hallway, your clothes cling to you. Ahead, a crystal‐clear pool glimmers.",
+                "It’s damp. The room is full of moisture, and you feel your clothes clinging to you as you walk. Ahead, a crystal‐clear pool glimmers.",
                 List.of(
                         new StageOption("D", "Drink from the pool", p -> p.heal(5), drink1, null),
                         new StageOption("S", "Swim in the pool", p -> {
@@ -91,6 +90,7 @@ public class CrystalPoolEncounter implements EncounterProvider {
                         }, avoid1, null)
                 )
         );
+
 
         return new EncounterCard("Crystal Pool", root);
     }

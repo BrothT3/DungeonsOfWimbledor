@@ -18,6 +18,25 @@ import java.util.function.Consumer;
 public class CombatUtils {
     private static final Random RNG = new Random();
 
+    public static AttackResult performAttack(ICombatEntity attacker,
+                                             ICombatEntity defender,
+                                             double accuracyMultiplier,
+                                             boolean forceCrit) {
+        double baseAcc = attacker.getAccuracy();
+        double accRoll = baseAcc * accuracyMultiplier;
+        boolean hit    = rollHit(accRoll, defender.getEvasion());
+        boolean crit   = forceCrit ? hit : (hit && RNG.nextDouble() < attacker.getCritChance() / 100.0);
+
+        int raw   = computeRawDamage(attacker, defender);
+        int finalDmg = computeFinalDamage(raw, attacker, crit);
+
+        applyDamage(attacker, defender, finalDmg);
+
+        return new AttackResult(hit, crit, finalDmg);
+    }
+
+
+
     /**
      * Resolves a “basic attack” from attacker → defender,
      * including buff hooks and penetration.
@@ -60,35 +79,6 @@ public class CombatUtils {
         }
     }
 
-
-    /**
-     * Wraps any ICombatAction:
-     * 1) Buff hooks (onActionStart)
-     * 2) action.modifyStats(...) for temp stat shifts
-     * 3) action.execute(...) actual effect
-     * 4) Buff hooks (onActionEnd)
-     */
-   /* public static void executeAction(ICombatAction action,
-                                     ICombatEntity actor,
-                                     List<ICombatEntity> targets) {
-        // Pre-action buff hooks
-        for (Buff b : actor.getBuffs()) b.onActionStart(actor, action);
-        for (ICombatEntity tgt : targets)
-            for (Buff b : tgt.getBuffs()) b.onActionStart(tgt, action);
-
-        // Let the action tweak stats (e.g. +20% damage, +5 pen, etc.)
-        action.modifyStats(actor, targets);
-
-        // Actually apply it
-        for (ICombatEntity tgt : targets) {
-            action.execute(actor, tgt);
-        }
-
-        // Post-action hooks
-        for (Buff b : actor.getBuffs()) b.onActionEnd(actor, action);
-        for (ICombatEntity tgt : targets)
-            for (Buff b : tgt.getBuffs()) b.onActionEnd(tgt, action);
-    }*/
     /**
      * Executes an ICombatAction and logs each target result.
      *
@@ -96,9 +86,7 @@ public class CombatUtils {
      * @param actor     the entity performing the action
      * @param targets   the list of targets
      */
-    public static void executeAction(ICombatAction action,
-                                     ICombatEntity actor,
-                                     List<ICombatEntity> targets) {
+    public static void executeAction(ICombatAction action, ICombatEntity actor, List<ICombatEntity> targets) {
         // 1) Buff hooks (start)
         for (Buff b : actor.getBuffs())        b.onActionStart(actor, action);
         for (ICombatEntity tgt : targets)
@@ -132,6 +120,37 @@ public class CombatUtils {
         for (Buff b : actor.getBuffs())        b.onActionEnd(actor, action);
         for (ICombatEntity tgt : targets)
             for (Buff b : tgt.getBuffs())      b.onActionEnd(tgt, action);
+    }
+
+    public static boolean rollHit(double accuracy, double evasion) {
+        double chance = accuracy - evasion;
+        double roll   = RNG.nextDouble() * 100;
+        return roll < chance;
+    }
+    public static int computeRawDamage(ICombatEntity attacker,
+                                       ICombatEntity defender) {
+        int raw = attacker.getAttack() - defender.getDefense();
+        return Math.max(1, raw);
+    }
+    public static int computeFinalDamage(int rawDamage,
+                                         ICombatEntity attacker,
+                                         boolean crit) {
+        if (crit) {
+            return rawDamage * attacker.getCritMultiplier();
+        }
+        return rawDamage;
+    }
+    public static void applyDamage(ICombatEntity attacker,
+                                   ICombatEntity defender,
+                                   int damage) {
+        defender.applyDamage(damage);
+    }
+    public static class AttackResult {
+        public final boolean hit, crit;
+        public final int damage;
+        public AttackResult(boolean hit, boolean crit, int damage) {
+            this.hit = hit; this.crit = crit; this.damage = damage;
+        }
     }
 
 }

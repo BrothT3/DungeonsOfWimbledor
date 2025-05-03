@@ -1,12 +1,15 @@
+// src/com/wimbledor/combat/CombatActions/Slash.java
 package com.wimbledor.combat.CombatActions;
 
 import com.wimbledor.combat.CombatUtils;
 import com.wimbledor.combat.ICombatAction;
 import com.wimbledor.combat.TargetMode;
+import com.wimbledor.engine.GameContext;
 import com.wimbledor.entities.ICombatEntity;
 
 /**
  * A basic melee attack.
+ * Uses full accuracy, no forced crit.
  */
 public class Slash implements ICombatAction {
     @Override
@@ -19,21 +22,47 @@ public class Slash implements ICombatAction {
         return TargetMode.SINGLE_ENEMY;
     }
 
-    /**
-     * No temporary stat tweaks, so we don’t override modifyStats().
-     */
+    @Override
+    public void modifyStats(ICombatEntity actor, java.util.List<ICombatEntity> targets) {
+        // no temporary stat tweaks
+    }
 
     @Override
     public void execute(ICombatEntity actor, ICombatEntity target) {
-        // Use our unified resolveAttack which handles buffs, penetration, crits, etc.
-        CombatUtils.resolveAttack(actor, target);
+        // performAttack(auto-logs hit/crit/dmg consistently)
+        CombatUtils.AttackResult result =
+                CombatUtils.performAttack(
+                        actor,
+                        target,
+                        /* accuracyMultiplier */ 1.0,
+                        /* forceCrit */          false
+                );
+
+        // log via GameContext.log (called inside performAttack? or here)
+        GameContext.log(
+                getLogMessage(
+                        actor,
+                        target,
+                        result.hit,
+                        result.crit,
+                        result.damage
+                )
+        );
     }
+
     @Override
-    public String getLogMessage(ICombatEntity actor, ICombatEntity target,
-                                boolean hit, boolean crit, int amount) {
-        if (!hit) return actor.getName() + " tried to slash, but missed!";
-        return actor.getName() + " swings his sword and slashes " + target.getName()
-                + " dealing " + (-amount) + " damage"
-                + (crit ? "!" : "");
+    public String getLogMessage(
+            ICombatEntity actor,
+            ICombatEntity target,
+            boolean hit,
+            boolean crit,
+            int amount
+    ) {
+        if (!hit) {
+            return actor.getName() + " tried to slash, but missed!";
+        }
+        return actor.getName() + " swings his sword and slashes " +
+                target.getName() + " for " + (-amount) + " damage" +
+                (crit ? " (Critical!)" : "");
     }
 }

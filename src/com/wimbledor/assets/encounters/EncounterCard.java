@@ -1,4 +1,4 @@
-// src/com/wimbledor/cards/encounters/EncounterCard.java
+// src/com/wimbledor/assets/encounters/EncounterCard.java
 package com.wimbledor.assets.encounters;
 
 import com.wimbledor.assets.BattleCard;
@@ -9,13 +9,6 @@ import com.wimbledor.engine.GameContext;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Wraps a tree of EncounterStages into an ICard for your MVC.
- * Selecting an option can:
- * • apply a Player effect,
- * • advance to another stage in THIS card, or
- * • immediately launch combat with a BaseNPC (via GameContext).
- */
 public class EncounterCard implements ICard {
     private final String title;
     private EncounterStage current;
@@ -23,6 +16,10 @@ public class EncounterCard implements ICard {
     public EncounterCard(String title, EncounterStage root) {
         this.title = title;
         this.current = root;
+    }
+
+    public EncounterStage getCurrentStage() {
+        return current;
     }
 
     @Override
@@ -37,34 +34,37 @@ public class EncounterCard implements ICard {
 
     @Override
     public List<CardOption> getOptions() {
-        return current.getOptions().stream().map(so -> {
-            return new CardOption(
-                    so.getCode(),
-                    so.getLabel(),
-                    player -> {
-                        // 1) apply narrative effect
+        return current.getOptions().stream()
+                .map(so -> {
+                    // 1) Build the effect callback exactly as before
+                    var effect = (java.util.function.Consumer<com.wimbledor.entities.Player>) player -> {
                         so.apply(player);
-
-                        // 2) if there's a battle card, launch it
                         BattleCard battle = so.getNextBattle();
                         if (battle != null) {
                             GameContext.startBattleWith(player, battle);
                             return;
                         }
-
-                        // 3) else if there's another narrative stage, advance
                         if (so.getNextStage() != null) {
                             this.current = so.getNextStage();
                             return;
                         }
+                    };
 
-                        // 4) otherwise, encounter is done
-                        GameContext.onEncounterComplete();
-                    },
-                    // if nextStage != null, clicking this option keeps you in the same EncounterCard
-                    so.getNextStage() != null ? this : null
-            );
-        }).collect(Collectors.toList());
+                    // 2) HERE’S THE KEY CHANGE:
+                    //    wrap the *next* stage in a brand-new EncounterCard,
+                    //    even if there's a battle attached.
+                    ICard nextCard = so.getNextStage() != null
+                            ? new EncounterCard(title, so.getNextStage())
+                            : null;
+
+                    return new CardOption(
+                            so.getCode(),
+                            so.getLabel(),
+                            effect,
+                            nextCard        // now correctly points at the aftermath card
+                    );
+                })
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -72,15 +72,10 @@ public class EncounterCard implements ICard {
         for (StageOption so : current.getOptions()) {
             if (!so.getCode().equals(code)) continue;
             so.apply(GameContext.getPlayer());
-            if (so.getNextBattle() != null) {
-                return so.getNextBattle();
-            }
-            if (so.getNextStage() != null) {
-                return new EncounterCard(title, so.getNextStage());
-            }
+            if (so.getNextBattle() != null)    return so.getNextBattle();
+            if (so.getNextStage() != null)     return new EncounterCard(title, so.getNextStage());
             return null;
         }
         return null;
     }
 }
-
