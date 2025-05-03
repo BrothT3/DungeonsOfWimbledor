@@ -177,4 +177,34 @@ public class Player implements ICombatEntity {
     @Override public List<Buff> getBuffs()                { return List.copyOf(buffs); }
     @Override public void addBuff(Buff b)                 { buffs.add(b); b.applyInitial(this); }
     @Override public void removeBuff(Buff b)              { buffs.remove(b); b.remove(this); }
+
+    @Override
+    public int getStrength() {
+        return 0;
+    }
+
+    @Override
+    public int getAgility() {
+        return 0;
+    }
+
+    @Override
+    public int getEndurance() {
+        return 0;
+    }
+
+    @Override
+    public int getWillpower() {
+        return 0;
+    }
+
+    @Override
+    public int getKnowledge() {
+        return 0;
+    }
+
+    @Override
+    public int getCunning() {
+        return 0;
+    }
 }

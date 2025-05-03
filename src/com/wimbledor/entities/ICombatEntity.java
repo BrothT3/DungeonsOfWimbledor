@@ -18,9 +18,7 @@ public interface ICombatEntity {
      */
     String getName();
 
-    /**
-     * health checks
-     */
+
     Team getTeam();
 
     boolean isAlive();
@@ -72,4 +70,12 @@ public interface ICombatEntity {
     void addBuff(Buff buff);
 
     void removeBuff(Buff buff);
+
+    int getStrength();
+    int getAgility();
+    int getEndurance();
+    int getWillpower();
+    int getKnowledge();
+    int getCunning();
 }
+

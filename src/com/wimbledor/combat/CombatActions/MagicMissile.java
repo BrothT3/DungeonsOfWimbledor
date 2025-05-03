@@ -1,5 +1,6 @@
-// src/com/wimbledor/combat/CombatActions/Backstab.java
 package com.wimbledor.combat.CombatActions;
+
+
 
 import com.wimbledor.combat.CombatUtils;
 import com.wimbledor.combat.ICombatAction;
@@ -9,7 +10,7 @@ import com.wimbledor.entities.ICombatEntity;
 
 import java.util.List;
 
-public class Backstab implements ICombatAction {
+public class MagicMissile implements ICombatAction {
     @Override
     public String getName() {
         return "Backstab";
@@ -36,6 +37,11 @@ public class Backstab implements ICombatAction {
                 1,
                 true    // force crit on hit
         );
+        if (res.hit){
+            int dmg = (int)(actor.getKnowledge() * 1.5 + actor.getWillpower() * 0.5);
+            CombatUtils.applyDamage(actor, target, dmg);
+        }
+
         GameContext.log(getLogMessage(
                 actor, target, res.hit, res.crit, res.damage
         ));
@@ -52,11 +58,11 @@ public class Backstab implements ICombatAction {
             int amount
     ) {
         if (!hit) {
-            return actor.getName() + " tried to fade into the shadows, but " +
-                    target.getName() + " saw the " + actor.getName()+"!";
+            return actor.getName() + " attempted to cast something " +
+                    target.getName() + " but the spell fizzled " + actor.getName()+"!";
         }
-        return actor.getName() + " faded from view, and then jumped at " +
-                target.getName() + ", backstabbing them for " + (-amount) +
+        return actor.getName() + " condenses a small amount of mana into a maggic missile and shoots it at " +
+                target.getName() + ", dealing" + (-amount) +
                 " damage" + (crit ? " (CRITICAL!)" : "");
     }
 }

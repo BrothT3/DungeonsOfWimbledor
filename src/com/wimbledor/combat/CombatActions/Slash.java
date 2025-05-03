@@ -31,11 +31,11 @@ public class Slash implements ICombatAction {
     public void execute(ICombatEntity actor, ICombatEntity target) {
         // performAttack(auto-logs hit/crit/dmg consistently)
         CombatUtils.AttackResult result =
-                CombatUtils.performAttack(
-                        actor,
-                        target,
+                CombatUtils.performAttack(actor, target,
                         /* accuracyMultiplier */ 1.0,
-                        /* forceCrit */          false
+                        /*Dmg Multiplier*/ 1,
+                        /* forceCrit */ false
+
                 );
 
         // log via GameContext.log (called inside performAttack? or here)
@@ -59,7 +59,7 @@ public class Slash implements ICombatAction {
             int amount
     ) {
         if (!hit) {
-            return actor.getName() + " tried to slash, but missed!";
+            return actor.getName() + " tried to slash at " +target.getName() +", but missed!";
         }
         return actor.getName() + " swings his sword and slashes " +
                 target.getName() + " for " + (-amount) + " damage" +

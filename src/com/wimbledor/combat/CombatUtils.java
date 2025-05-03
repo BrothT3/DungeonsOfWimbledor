@@ -18,21 +18,47 @@ import java.util.function.Consumer;
 public class CombatUtils {
     private static final Random RNG = new Random();
 
-    public static AttackResult performAttack(ICombatEntity attacker,
-                                             ICombatEntity defender,
-                                             double accuracyMultiplier,
-                                             boolean forceCrit) {
-        double baseAcc = attacker.getAccuracy();
-        double accRoll = baseAcc * accuracyMultiplier;
+
+    public static AttackResult performAttack(
+            ICombatEntity attacker,
+            ICombatEntity defender,
+            double accuracyMultiplier,
+            double damageMultiplier,
+            boolean forceCrit
+    ) {
+        // 1) Hit roll
+        double accRoll = attacker.getAccuracy() * accuracyMultiplier;
         boolean hit    = rollHit(accRoll, defender.getEvasion());
-        boolean crit   = forceCrit ? hit : (hit && RNG.nextDouble() < attacker.getCritChance() / 100.0);
 
-        int raw   = computeRawDamage(attacker, defender);
-        int finalDmg = computeFinalDamage(raw, attacker, crit);
+        // 2) Crit logic
+        boolean crit   = hit && (forceCrit
+                || RNG.nextDouble() < attacker.getCritChance() / 100.0
+        );
 
-        applyDamage(attacker, defender, finalDmg);
+        // 3) Compute raw attack value
+        int attackStat     = attacker.getAttack();
+        int penetration    = attacker.getDefensePenetration();
 
-        return new AttackResult(hit, crit, finalDmg);
+        // 4) Split into penetrating vs. non-penetrating portions
+        int penetratingPortion   = Math.min(penetration, attackStat);
+        int nonPenetratingPortion = attackStat - penetratingPortion;
+
+        // 5) Apply defender’s defense to the non-penetrating portion
+        int effectiveNonPen = Math.max(0, nonPenetratingPortion - defender.getDefense());
+
+        // 6) Combine and scale
+        int rawCombined   = penetratingPortion + effectiveNonPen;
+        int scaledRaw     = (int)(rawCombined * damageMultiplier);
+
+        // 7) Apply crit multiplier if needed
+        int finalDamage = crit
+                ? scaledRaw * attacker.getCritMultiplier()
+                : scaledRaw;
+
+        // 8) Deal damage
+        applyDamage(attacker, defender, finalDamage);
+
+        return new AttackResult(hit, crit, finalDamage);
     }
 
 
