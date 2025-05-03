@@ -1,6 +1,7 @@
 // src/com/wimbledor/ui/MainFrame.java
 package com.wimbledor.ui;
 
+import com.wimbledor.combat.TurnManager;
 import com.wimbledor.engine.GameContext;
 import com.wimbledor.entities.Player;
 import com.wimbledor.engine.EncounterDeck;
@@ -16,7 +17,7 @@ public class MainFrame extends JFrame {
     private final CardView       cardView;
 
     private final EnemyPanel     enemyPanel;
-    private final ActionPanel    actionPanel;
+    private  ActionPanel    actionPanel;
     private final LogPanel       logPanel;
     private final PlayerInfoPanel infoPanel;
     private final JPanel         leftContainer;
@@ -70,6 +71,29 @@ public class MainFrame extends JFrame {
         pack();
         setLocationRelativeTo(null);
         setVisible(true);
+    }
+    public void refreshCombatUI(
+            java.util.List<com.wimbledor.entities.ICombatEntity> enemies,
+            TurnManager tm,
+            java.util.function.BiConsumer<com.wimbledor.combat.ICombatAction,
+                    java.util.List<com.wimbledor.entities.ICombatEntity>> onActionSelected
+    ) {
+        leftContainer.removeAll();
+
+        // 1) Enemy row
+        enemyPanel.updateEnemies(enemies);
+        leftContainer.add(enemyPanel);
+
+        // 2) Action row
+        actionPanel = new ActionPanel();
+        actionPanel.updateActions(tm, onActionSelected);
+        leftContainer.add(actionPanel);
+
+        // 3) Log row
+        leftContainer.add(logPanel);
+
+        leftContainer.revalidate();
+        leftContainer.repaint();
     }
     /**
      * Lets the controller swap *exactly* what sits on the left of the split.

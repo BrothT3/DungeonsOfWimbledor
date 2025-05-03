@@ -144,7 +144,26 @@ public class CardController implements ActionListener {
         );
 
         center.add(fresh);
-        frame.setCenterComponent(center);  // MODIFIED: show our buttons
+        frame.refreshCombatUI(
+                turnManager.getEnemiesOf(turnManager.getPlayerEntity().getTeam()),
+                turnManager,
+                (act, targets) -> {
+                    // execute & log
+                    CombatUtils.executeAction(act,
+                            turnManager.getPlayerEntity(),
+                            targets);
+                    // advance past player
+                    turnManager.playerResolved();
+                    // spin AI
+                    ICombatEntity who;
+                    while ((who = turnManager.processNextTurn()) != null
+                            && who.getTeam() != Team.PLAYER) { }
+                    // if battle still on, rebuild
+                    if (!turnManager.isBattleOver()) {
+                        showPlayerActions();
+                    }
+                }
+        );
         frame.refresh();
     }
 }
