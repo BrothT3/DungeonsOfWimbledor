@@ -87,7 +87,7 @@ public class ActionPanel extends JPanel {
                     default -> { targets = List.of(); }
                 }
                 // execute & log
-                CombatUtils.executeAction(act, GameContext.getPlayer(), targets, onActionComplete);
+                CombatUtils.executeAction(act, GameContext.getPlayer(), targets);
                 onActionComplete.accept(
                         tm.getPlayerEntity().getName()
                                 + " uses " + act.getName()

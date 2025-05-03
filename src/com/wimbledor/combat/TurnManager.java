@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
  */
 public class TurnManager {
     private final List<ICombatEntity> allEntities;
+    private final Deque<ICombatEntity> turnQueue = new ArrayDeque<>();
     private final Runnable onBattleOver;
     public static long TURN_DELAY_MS = 500;
 
@@ -26,13 +27,18 @@ public class TurnManager {
         Objects.requireNonNull(enemies, "enemies");
         this.onBattleOver = Objects.requireNonNull(onBattleOver, "onBattleOver");
 
-        // build the combatants list
         this.allEntities = new ArrayList<>();
         this.allEntities.add(player);
         this.allEntities.addAll(enemies);
 
-        // no one has acted yet
-        this.currentEntity = null;
+        refillQueue();  // prepare the first round
+    }
+    private void refillQueue() {
+        turnQueue.clear();
+        allEntities.stream()
+                .filter(ICombatEntity::isAlive)
+                .sorted(Comparator.comparingInt(ICombatEntity::getSpeed).reversed())
+                .forEach(turnQueue::addLast);
     }
 
     /**
@@ -43,38 +49,41 @@ public class TurnManager {
      * If battle is over, fires onBattleOver once.
      */
     public void update(long deltaMs) {
-        // If the fight has already ended, fire callback (once).
         if (isBattleOver()) {
             onBattleOver.run();
             return;
         }
 
-        // If no current actor, pick next
-        if (currentEntity == null) {
-            startNextTurn();
+        // If we ran out of this round's queue, start a fresh round
+        if (turnQueue.isEmpty()) {
+            refillQueue();
         }
 
-        // If it's the player, wait for playerActionResolved()
+        // If no one has been chosen yet, pick the next
+        if (currentEntity == null) {
+            currentEntity = turnQueue.pollFirst();
+        }
+
+        // If it's still null (all dead?), bail
+        if (currentEntity == null) {
+            onBattleOver.run();
+            return;
+        }
+
+        // If it's the player's turn, pause here until playerActionResolved()
         if (currentEntity.getTeam() == Team.PLAYER) {
             return;
         }
 
-        // Otherwise: AI actor takes exactly one turn
+        // Otherwise, it's an AI turn: do exactly one takeTurn
         currentEntity.takeTurn(this);
-        // clear so that next update() will pick the next
+        // and advance currentEntity so next tick picks the next combatant
         currentEntity = null;
     }
 
     /** Called by UI when the player has selected & executed their action. */
     public void playerActionResolved() {
-        if (isBattleOver()) {
-            onBattleOver.run();
-            return;
-        }
-        // if we were waiting on the player, let them act now:
         if (currentEntity != null && currentEntity.getTeam() == Team.PLAYER) {
-            // We assume the UI has already applied the action,
-            // so we simply clear current so update() can advance.
             currentEntity = null;
         }
     }

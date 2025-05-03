@@ -28,8 +28,7 @@ public class GameLoop {
     public void startBattle(TurnManager tm, long tickRateMs) {
         this.turnManager = tm;
         scheduler.scheduleAtFixedRate(
-                () -> turnManager.update(tickRateMs),
-                0, tickRateMs, TimeUnit.MILLISECONDS
+                () -> turnManager.update(tickRateMs), tickRateMs, tickRateMs, TimeUnit.MILLISECONDS
         );
     }
 

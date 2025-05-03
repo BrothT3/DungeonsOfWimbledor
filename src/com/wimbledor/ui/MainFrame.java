@@ -63,7 +63,7 @@ public class MainFrame extends JFrame {
         controller = new CardController(
                 deck, cardView, enemyPanel, actionPanel, logPanel, this
         );
-
+        GameContext.setLogger(logPanel::append);
         // start
         controller.start();
 

@@ -2,6 +2,7 @@ package com.wimbledor.combat;
 
 
 import com.wimbledor.effects.Buff;
+import com.wimbledor.engine.GameContext;
 import com.wimbledor.entities.ICombatEntity;
 
 import java.util.List;
@@ -94,12 +95,10 @@ public class CombatUtils {
      * @param action    the combat action to run
      * @param actor     the entity performing the action
      * @param targets   the list of targets
-     * @param logger    a consumer that accepts a one‐line log message
      */
     public static void executeAction(ICombatAction action,
                                      ICombatEntity actor,
-                                     List<ICombatEntity> targets,
-                                     Consumer<String> logger) {
+                                     List<ICombatEntity> targets) {
         // 1) Buff hooks (start)
         for (Buff b : actor.getBuffs())        b.onActionStart(actor, action);
         for (ICombatEntity tgt : targets)
@@ -126,7 +125,7 @@ public class CombatUtils {
 
             // Let the action build its own log message:
             String msg = action.getLogMessage(actor, tgt, hit, crit, delta);
-            logger.accept(msg);
+            GameContext.log(msg);
         }
 
         // 4) Buff hooks (end)
