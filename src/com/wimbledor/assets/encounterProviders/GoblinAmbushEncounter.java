@@ -22,7 +22,7 @@ public class GoblinAmbushEncounter implements EncounterProvider {
                 List.of(
                         new StageOption("F", "Fight the goblins", p -> {
                         }, null,
-                                new BattleCard("Sneaky Bastards!", List.of(new GoblinCard()))
+                                new BattleCard("Sneaky Bastards!", List.of(new GoblinCard(), new GoblinCard(), new GoblinCard()))
                         ),
                         new StageOption("S", "Sneak past quietly", p -> {
                         }, sneakEnd, null)

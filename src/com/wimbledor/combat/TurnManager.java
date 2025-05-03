@@ -56,12 +56,12 @@ public class TurnManager {
             // pause here; UI must call playerResolved() next
             // re‐enqueue the player at the front so that processNextTurn()
             // continues to return them until they resolve.
-            turnQueue.addFirst(actor);
             return actor;
         }
 
         // AI's turn: execute immediately
         actor.takeTurn(this);
+        turnQueue.addLast((actor));
         return actor;
     }
 
@@ -69,8 +69,9 @@ public class TurnManager {
     public void playerResolved() {
         ICombatEntity player = getPlayerEntity();
         // remove that one instance from the queue and put them at the back
-        turnQueue.removeFirstOccurrence(player);
-        turnQueue.addLast(player);
+        if (player.isAlive()) {
+            turnQueue.addLast(player);
+        }
     }
 
     public boolean isBattleOver() {
