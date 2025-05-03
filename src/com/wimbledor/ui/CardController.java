@@ -3,29 +3,29 @@ package com.wimbledor.ui;
 
 import com.wimbledor.assets.BattleCard;
 import com.wimbledor.assets.ICard;
+import com.wimbledor.combat.CombatUtils;
 import com.wimbledor.combat.TurnManager;
 import com.wimbledor.engine.EncounterDeck;
+import com.wimbledor.engine.EncounterFactory;
 import com.wimbledor.engine.GameContext;
 import com.wimbledor.entities.ICombatEntity;
+import com.wimbledor.entities.Team;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-/**
- * Glue between narrative (CardView) and combat panels.
- */
 public class CardController implements ActionListener {
     private final EncounterDeck deck;
     private final CardView      cardView;
     private final EnemyPanel    enemyPanel;
-    private final ActionPanel   actionPanel;
+    private ActionPanel         actionPanel;   // MODIFIED: now rebuilt each turn
     private final LogPanel      logPanel;
     private final MainFrame     frame;
 
-    private ICard       current;
-    private boolean     inBattle    = false;
-    private TurnManager turnManager;
+    private ICard        current;
+    private boolean      inBattle     = false;
+    private TurnManager  turnManager;
 
     public CardController(EncounterDeck deck,
                           CardView cardView,
@@ -40,30 +40,27 @@ public class CardController implements ActionListener {
         this.logPanel    = logPanel;
         this.frame       = frame;
 
-        GameContext.setOnEncounterComplete(this::onBattleComplete);
+        GameContext.setOnEncounterComplete(this::drawNext);
     }
 
     public void start() {
         drawNext();
     }
 
-    private void onBattleComplete() {
-        inBattle = false;
-        SwingUtilities.invokeLater(this::drawNext);
-    }
-
     private void drawNext() {
+        // hide combat panels
         enemyPanel .setVisible(false);
         actionPanel.setVisible(false);
         logPanel   .setVisible(false);
 
-        cardView.setVisible(true);
+        // show narrative
+        cardView   .setVisible(true);
 
         if (deck.hasNext()) {
             current = deck.draw();
             cardView.display(current, this);
         } else {
-            JOptionPane.showMessageDialog(frame, "You cleared the dungeon!");
+            JOptionPane.showMessageDialog(frame, "You've cleared the dungeon!");
         }
         frame.refresh();
     }
@@ -73,49 +70,81 @@ public class CardController implements ActionListener {
         String code = e.getActionCommand();
         ICard next  = current.onOptionSelected(code);
 
-        // 1) start battle
+        // 1) Start battle
         if (!inBattle && next instanceof BattleCard battle) {
             inBattle = true;
             current  = battle;
             cardView.setVisible(false);
+            logPanel.clear();
 
             enemyPanel.updateEnemies(battle.getMonsters());
             enemyPanel.setVisible(true);
 
-            logPanel.clear();
-            logPanel.setVisible(true);
-
+            // build a fresh TurnManager
             turnManager = GameContext.startBattleWith(
-                    GameContext.getPlayer(),
-                    battle
+                    GameContext.getPlayer(), battle
             );
 
-            actionPanel.updateActions(
-                    turnManager,
-                    logLine -> {
-                        logPanel.append(logLine);
-                        GameContext.playerActionResolved();
-                    }
-            );
-            actionPanel.setVisible(true);
+            // CHANGED: spin AI until it's *actually* the player's turn
+            ICombatEntity who;
+            while ((who = turnManager.processNextTurn()) != null
+                    && who.getTeam() != Team.PLAYER) {
+                // AI turn happens inside takeTurn() + logs itself
+            }
 
+            // now show buttons *only* on player's turn
+            showPlayerActions();
+            return;
+        }
+
+        // 2) Narrative branching (no-op here; handled by CardView)
+        if (!inBattle) {
+            if (next != null) {
+                current = next;
+                cardView.display(current, this);
+            } else {
+                drawNext();
+            }
             frame.refresh();
-            return;
         }
+    }
 
-        // 2) in‐battle button clicks are handled inside ActionPanel
-        if (inBattle && next instanceof BattleCard) {
-            return;
-        }
+    /**
+     * Rebuilds and shows the action buttons for the player’s turn.
+     */
+    private void showPlayerActions() {
+        enemyPanel.setVisible(true);
+        logPanel  .setVisible(true);
 
-        // 3) narrative
-        if (!inBattle && next != null) {
-            current = next;
-            cardView.display(current, this);
-        } else if (!inBattle) {
-            drawNext();
-        }
+        // CHANGED: recreate ActionPanel each turn
+        JPanel center = new JPanel();
+        center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
 
+        ActionPanel fresh = new ActionPanel();
+        fresh.updateActions(
+                turnManager,
+                (act, targets) -> {
+                    // 1) execute & log
+                    CombatUtils.executeAction(
+                            act,
+                            turnManager.getPlayerEntity(),
+                            targets
+                    );
+                    // 2) tell the TM we're done
+                    turnManager.playerResolved();
+                    // 3) spin AI again
+                    ICombatEntity who;
+                    while ((who = turnManager.processNextTurn()) != null
+                            && who.getTeam() != Team.PLAYER) { }
+                    // 4) if battle still on, rebuild buttons
+                    if (!turnManager.isBattleOver()) {
+                        showPlayerActions();
+                    }
+                }
+        );
+
+        center.add(fresh);
+        frame.setCenterComponent(center);  // MODIFIED: show our buttons
         frame.refresh();
     }
 }

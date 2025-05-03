@@ -71,6 +71,22 @@ public class MainFrame extends JFrame {
         setLocationRelativeTo(null);
         setVisible(true);
     }
+    /**
+     * Lets the controller swap *exactly* what sits on the left of the split.
+     * Internally we wrap in a scroll‐pane if you pass a raw component.
+     */
+    public void setCenterComponent(JComponent comp) {
+        Component left;
+        if (comp instanceof JScrollPane) {
+            left = comp;
+        } else {
+            left = new JScrollPane(comp);
+        }
+        split.setLeftComponent(left);
+        split.setDividerLocation(0.7);
+        revalidate();
+        repaint();
+    }
 
     /** Refresh all panels. */
     public void refresh() {

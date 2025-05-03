@@ -19,7 +19,6 @@ import java.util.function.Consumer;
 public class GameContext {
     private static Player player;
     private static Runnable onEncounterComplete;
-    private static GameLoop gameLoop;
     private static Consumer<String> LOG;
 
     public static void setLogger(Consumer<String> log) {
@@ -69,22 +68,12 @@ public class GameContext {
      * so your CardController will draw the next encounter card.
      */
     public static TurnManager startBattleWith(Player p, BattleCard card) {
-        // make your resume‐narrative callback
+        // resume‐narrative callback wrapped on the EDT
         Runnable resumeNarrative = () -> SwingUtilities.invokeLater(onEncounterComplete);
-
-        // 1) create the TurnManager
-        TurnManager tm = new TurnManager(p, card.getMonsters(), resumeNarrative);
-
-        // 2) hand that TurnManager into your GameLoop
-        gameLoop = new GameLoop();
-        gameLoop.startBattle(tm, TurnManager.getTurnDelayMs());
-
-        // 3) return it so callers can stash/use it
-        return tm;
+        // simply construct & return a TurnManager; no background loop
+        return new TurnManager(p, card.getMonsters(), resumeNarrative);
     }
-    public static void playerActionResolved() {
-        if (gameLoop != null) gameLoop.playerResolved();
-    }
+
 
     /**
      * (Optional) If you ever need to force‐present a standalone encounter

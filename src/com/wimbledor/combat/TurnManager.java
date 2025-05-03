@@ -1,3 +1,4 @@
+// src/com/wimbledor/combat/TurnManager.java
 package com.wimbledor.combat;
 
 import com.wimbledor.entities.ICombatEntity;
@@ -6,19 +7,10 @@ import com.wimbledor.entities.Team;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Schedules and advances turns, with explicit support for
- * waiting on player input (via playerActionResolved()).
- */
 public class TurnManager {
     private final List<ICombatEntity> allEntities;
     private final Deque<ICombatEntity> turnQueue = new ArrayDeque<>();
-    private final Runnable onBattleOver;
-    public static long TURN_DELAY_MS = 500;
-
-
-    // state of whose turn it is
-    private ICombatEntity currentEntity;
+    private final Runnable            onBattleOver;
 
     public TurnManager(ICombatEntity player,
                        List<ICombatEntity> enemies,
@@ -30,9 +22,10 @@ public class TurnManager {
         this.allEntities = new ArrayList<>();
         this.allEntities.add(player);
         this.allEntities.addAll(enemies);
-
-        refillQueue();  // prepare the first round
+        refillQueue();
     }
+
+    /** Sorts alive combatants by speed descending into the queue. */
     private void refillQueue() {
         turnQueue.clear();
         allEntities.stream()
@@ -42,77 +35,54 @@ public class TurnManager {
     }
 
     /**
-     * Called each tick by GameLoop.
-     * If it's AI's turn, processes exactly one turn.
-     * If it's the player's turn, returns immediately and waits
-     * for playerActionResolved().
-     * If battle is over, fires onBattleOver once.
+     * Run exactly one turn. Returns the entity who just ACTED,
+     * or null if the battle is over.
+     *  - If it's the player, no action is executed; you must call playerResolved().
+     *  - If it's AI, we immediately call its takeTurn().
      */
-    public void update(long deltaMs) {
+    public ICombatEntity processNextTurn() {
         if (isBattleOver()) {
             onBattleOver.run();
-            return;
+            return null;
+        }
+        if (turnQueue.isEmpty()) refillQueue();
+
+        ICombatEntity actor = turnQueue.pollFirst();
+        if (actor == null || !actor.isAlive()) {
+            return processNextTurn(); // skip dead
         }
 
-        // If we ran out of this round's queue, start a fresh round
-        if (turnQueue.isEmpty()) {
-            refillQueue();
+        if (actor.getTeam() == Team.PLAYER) {
+            // pause here; UI must call playerResolved() next
+            // re‐enqueue the player at the front so that processNextTurn()
+            // continues to return them until they resolve.
+            turnQueue.addFirst(actor);
+            return actor;
         }
 
-        // If no one has been chosen yet, pick the next
-        if (currentEntity == null) {
-            currentEntity = turnQueue.pollFirst();
-        }
-
-        // If it's still null (all dead?), bail
-        if (currentEntity == null) {
-            onBattleOver.run();
-            return;
-        }
-
-        // If it's the player's turn, pause here until playerActionResolved()
-        if (currentEntity.getTeam() == Team.PLAYER) {
-            return;
-        }
-
-        // Otherwise, it's an AI turn: do exactly one takeTurn
-        currentEntity.takeTurn(this);
-        // and advance currentEntity so next tick picks the next combatant
-        currentEntity = null;
+        // AI's turn: execute immediately
+        actor.takeTurn(this);
+        return actor;
     }
 
-    /** Called by UI when the player has selected & executed their action. */
-    public void playerActionResolved() {
-        if (currentEntity != null && currentEntity.getTeam() == Team.PLAYER) {
-            currentEntity = null;
-        }
-    }
-
-    /** Picks the next living entity by speed descending. */
-    private void startNextTurn() {
-        // filter, sort, and pick the highest-speed alive combatant
-        currentEntity = allEntities.stream()
-                .filter(ICombatEntity::isAlive)
-                .max(Comparator.comparingInt(ICombatEntity::getSpeed))
-                .orElse(null);
-        // (should never be null here unless all dead)
-    }
-
-    public ICombatEntity getCurrentEntity() {
-        return currentEntity;
+    /** Call this _once_ after you've executed the player’s chosen action. */
+    public void playerResolved() {
+        ICombatEntity player = getPlayerEntity();
+        // remove that one instance from the queue and put them at the back
+        turnQueue.removeFirstOccurrence(player);
+        turnQueue.addLast(player);
     }
 
     public boolean isBattleOver() {
         boolean anyPlayer = allEntities.stream()
                 .filter(e -> e.getTeam() == Team.PLAYER)
                 .anyMatch(ICombatEntity::isAlive);
-        boolean anyEnemy = allEntities.stream()
+        boolean anyEnemy  = allEntities.stream()
                 .filter(e -> e.getTeam() == Team.PLAYER)
                 .anyMatch(ICombatEntity::isAlive);
         return !(anyPlayer && anyEnemy);
     }
 
-    /** Returns the one player in this fight. */
     public ICombatEntity getPlayerEntity() {
         return allEntities.stream()
                 .filter(e -> e.getTeam() == Team.PLAYER)
@@ -120,20 +90,17 @@ public class TurnManager {
                 .orElseThrow(() -> new IllegalStateException("No player in battle"));
     }
 
-    /** Returns all living entities not on the given team. */
+    public List<ICombatEntity> getPlayers() {
+        return allEntities.stream()
+                .filter(ICombatEntity::isAlive)
+                .filter(e -> e.getTeam() == Team.PLAYER)
+                .collect(Collectors.toList());
+    }
+
     public List<ICombatEntity> getEnemiesOf(Team team) {
         return allEntities.stream()
                 .filter(ICombatEntity::isAlive)
                 .filter(e -> e.getTeam() != team)
-                .collect(Collectors.toList());
-    }
-    public static long getTurnDelayMs() {
-        return TURN_DELAY_MS;
-    }
-    /** Returns all living combatants. */
-    public List<ICombatEntity> getAllEntities() {
-        return allEntities.stream()
-                .filter(ICombatEntity::isAlive)
                 .collect(Collectors.toList());
     }
 }
