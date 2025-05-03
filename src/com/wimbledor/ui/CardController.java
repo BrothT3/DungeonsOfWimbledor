@@ -1,169 +1,194 @@
-// src/com/wimbledor/ui/CardController.java
 package com.wimbledor.ui;
 
 import com.wimbledor.assets.BattleCard;
 import com.wimbledor.assets.ICard;
 import com.wimbledor.combat.CombatUtils;
+import com.wimbledor.combat.ICombatAction;
 import com.wimbledor.combat.TurnManager;
-import com.wimbledor.engine.EncounterDeck;
-import com.wimbledor.engine.EncounterFactory;
-import com.wimbledor.engine.GameContext;
 import com.wimbledor.entities.ICombatEntity;
 import com.wimbledor.entities.Team;
+import com.wimbledor.engine.EncounterDeck;
+import com.wimbledor.engine.GameContext;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.List;
+import java.util.function.BiConsumer;
 
-public class CardController implements ActionListener {
+import static com.wimbledor.engine.GameContext.log;
+
+public class CardController {
+    private final MainFrame frame;
     private final EncounterDeck deck;
-    private final CardView      cardView;
-    private final EnemyPanel    enemyPanel;
-    private ActionPanel         actionPanel;   // MODIFIED: now rebuilt each turn
-    private final LogPanel      logPanel;
-    private final MainFrame     frame;
+    private TurnManager tm;
+    private final CardView cardView;
+    private final EnemyPanel enemyPanel;
+    private final ActionPanel actionPanel;
+    private final LogPanel logPanel;
+    private ICombatAction pendingAction;
 
-    private ICard        current;
-    private boolean      inBattle     = false;
-    private TurnManager  turnManager;
-
-    public CardController(EncounterDeck deck,
-                          CardView cardView,
-                          EnemyPanel enemyPanel,
-                          ActionPanel actionPanel,
-                          LogPanel logPanel,
-                          MainFrame frame) {
-        this.deck        = deck;
-        this.cardView    = cardView;
-        this.enemyPanel  = enemyPanel;
+    public CardController(
+            EncounterDeck deck,
+            CardView cardView,
+            EnemyPanel enemyPanel,
+            ActionPanel actionPanel,
+            LogPanel logPanel,
+            MainFrame frame
+    ) {
+        this.deck = deck;
+        this.cardView = cardView;
+        this.enemyPanel = enemyPanel;
         this.actionPanel = actionPanel;
-        this.logPanel    = logPanel;
-        this.frame       = frame;
+        this.logPanel = logPanel;
+        this.frame = frame;
 
-        GameContext.setOnEncounterComplete(this::drawNext);
+        // UI event wiring
+        GameContext.setOnEncounterComplete(() -> SwingUtilities.invokeLater(() -> {
+            frame.refreshNarrativeUI();
+            drawNextCard();
+        }));
+
+        // UI event wiring
+        actionPanel.setActionClickListener(this::onActionClicked);
+        enemyPanel.setEnemyClickListener(this::onEnemyClicked);
     }
 
+    /** Start the dungeon crawl. */
     public void start() {
-        drawNext();
+        drawNextCard();
     }
 
-    private void drawNext() {
-        // hide combat panels
-        enemyPanel .setVisible(false);
-        actionPanel.setVisible(false);
-        logPanel   .setVisible(false);
-
-        // show narrative
-        cardView   .setVisible(true);
-
-        if (deck.hasNext()) {
-            current = deck.draw();
-            cardView.display(current, this);
-        } else {
-            JOptionPane.showMessageDialog(frame, "You've cleared the dungeon!");
-        }
-        frame.refresh();
-    }
-
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        String code = e.getActionCommand();
-        ICard next  = current.onOptionSelected(code);
-
-        // 1) Start battle
-        if (!inBattle && next instanceof BattleCard battle) {
-            inBattle = true;
-            current  = battle;
-            cardView.setVisible(false);
-            logPanel.clear();
-
-            enemyPanel.updateEnemies(battle.getMonsters());
-            enemyPanel.setVisible(true);
-
-            // build a fresh TurnManager
-            turnManager = GameContext.startBattleWith(
-                    GameContext.getPlayer(), battle
-            );
-
-            // CHANGED: spin AI until it's *actually* the player's turn
-            ICombatEntity who;
-            while ((who = turnManager.processNextTurn()) != null
-                    && who.getTeam() != Team.PLAYER) {
-                // AI turn happens inside takeTurn() + logs itself
-            }
-
-            // now show buttons *only* on player's turn
-            showPlayerActions();
+    /** Pull & display next card from deck. */
+    private void drawNextCard() {
+        ICard card = deck.draw();
+        if (card == null) {
+            logPanel.append("-- End of dungeon --\n");
             return;
         }
-
-        // 2) Narrative branching (no-op here; handled by CardView)
-        if (!inBattle) {
-            if (next != null) {
-                current = next;
-                cardView.display(current, this);
-            } else {
-                drawNext();
-            }
-            frame.refresh();
+        if (card instanceof BattleCard) {
+            beginBattle((BattleCard) card);
+        } else {
+            showNarrative(card);
         }
     }
 
-    /**
-     * Rebuilds and shows the action buttons for the player’s turn.
-     */
-    private void showPlayerActions() {
-        enemyPanel.setVisible(true);
-        logPanel  .setVisible(true);
+    /** Display narrative card. */
+    private void showNarrative(ICard card) {
+        frame.refreshNarrativeUI();
+        cardView.clear();
+        // display card and listen for button clicks
+        cardView.display(card, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                onCardOptionSelected(e.getActionCommand(), card);
+            }
+        });
+    }
 
-        // CHANGED: recreate ActionPanel each turn
-        JPanel center = new JPanel();
-        center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
+    /** Handle narrative option click. */
+    private void onCardOptionSelected(String code, ICard current) {
+        ICard next = current.onOptionSelected(code);
+        if (next instanceof BattleCard) {
+            beginBattle((BattleCard) next);
+        } else if (next != null) {
+            showNarrative(next);
+        } else {
+            drawNextCard();
+        }
+    }
 
-        ActionPanel fresh = new ActionPanel();
-        fresh.updateActions(
-                turnManager,
-                (act, targets) -> {
-                    // 1) execute & log
-                    CombatUtils.executeAction(
-                            act,
-                            turnManager.getPlayerEntity(),
-                            targets
-                    );
-                    // 2) tell the TM we're done
-                    turnManager.playerResolved();
-                    // 3) spin AI again
-                    ICombatEntity who;
-                    while ((who = turnManager.processNextTurn()) != null
-                            && who.getTeam() != Team.PLAYER) { }
-                    // 4) if battle still on, rebuild buttons
-                    if (!turnManager.isBattleOver()) {
-                        showPlayerActions();
-                    }
-                }
-        );
+    /** Initialize and display combat UI. */
+    private void beginBattle(BattleCard battleCard) {
+        this.tm = GameContext.startBattleWith(GameContext.getPlayer(), battleCard);
+        tm = GameContext.startBattleWith(GameContext.getPlayer(), battleCard);
 
-        center.add(fresh);
         frame.refreshCombatUI(
-                turnManager.getEnemiesOf(turnManager.getPlayerEntity().getTeam()),
-                turnManager,
-                (act, targets) -> {
-                    // execute & log
-                    CombatUtils.executeAction(act,
-                            turnManager.getPlayerEntity(),
-                            targets);
-                    // advance past player
-                    turnManager.playerResolved();
-                    // spin AI
-                    ICombatEntity who;
-                    while ((who = turnManager.processNextTurn()) != null
-                            && who.getTeam() != Team.PLAYER) { }
-                    // if battle still on, rebuild
-                    if (!turnManager.isBattleOver()) {
-                        showPlayerActions();
-                    }
-                }
+                tm.getEnemiesOf(GameContext.getPlayer().getTeam()),
+                tm,
+                this::onRawActionSelected
         );
-        frame.refresh();
+        showPlayerActions();
+    }
+
+    /** Callback for controller-driven action & target. */
+    private void onRawActionSelected(ICombatAction action, List<ICombatEntity> targets) {
+        resolve(action, targets);
+    }
+
+    /** Handle action button clicks. */
+    private void onActionClicked(ICombatAction action) {
+        switch (action.getTargetMode()) {
+            case SELF -> resolve(action, List.of(GameContext.getPlayer()));
+            case ALL_ENEMIES -> resolve(action, tm.getEnemiesOf(GameContext.getPlayer().getTeam()));
+            case SINGLE_ENEMY -> {
+                List<ICombatEntity> foes = tm.getEnemiesOf(GameContext.getPlayer().getTeam());
+                if (foes.size() == 1) {
+                    resolve(action, foes);
+                } else {
+                    pendingAction = action;
+                    highlightEnemies(true);
+                    logPanel.append("Click an enemy to target ‘" + action.getName() + "’\n");
+                }
+            }
+        }
+    }
+
+    /** Handle enemy card clicks when awaiting a target. */
+    private void onEnemyClicked(ICombatEntity enemy) {
+        if (pendingAction != null) {
+            resolve(pendingAction, List.of(enemy));
+            pendingAction = null;
+            highlightEnemies(false);
+        }
+    }
+
+    /** Execute player action, spin AI turns, then refresh or end battle. */
+    private void resolve(ICombatAction action, List<ICombatEntity> targets) {
+        CombatUtils.executeAction(action, GameContext.getPlayer(), targets);
+        tm.playerResolved();
+
+        ICombatEntity next;
+        while ((next = tm.processNextTurn()) != null && next.getTeam() != Team.PLAYER) {
+            // AI turn
+        }
+
+        if (tm.isBattleOver()) {
+            // turnManager's onBattleOver will invoke endBattle()
+        } else {
+            showPlayerActions();
+            frame.refreshCombatUI(
+                    tm.getEnemiesOf(GameContext.getPlayer().getTeam()),
+                    tm,
+                    this::onRawActionSelected
+            );
+        }
+    }
+
+    /** Highlight or un-highlight all enemy cards. */
+    private void highlightEnemies(boolean on) {
+        for (Component c : frame.getEnemyPanel().getComponents()) {
+            if (c instanceof JComponent jc) {
+                jc.setBorder(on
+                        ? BorderFactory.createLineBorder(Color.ORANGE, 3)
+                        : BorderFactory.createEmptyBorder(3,3,3,3)
+                );
+            }
+        }
+    }
+    private void showPlayerActions() {
+        var player = GameContext.getPlayer();
+        actionPanel.updateActions(
+                player.getAvailableActions()
+        );
+    }
+    /** Called when battle ends. */
+    private void endBattle() {
+        SwingUtilities.invokeLater(() -> {
+            log("-- Battle Over --\n");
+            frame.refreshNarrativeUI();
+            drawNextCard();
+        });
     }
 }

@@ -3,6 +3,8 @@ package com.wimbledor.ui;
 
 import com.wimbledor.combat.TurnManager;
 import com.wimbledor.engine.GameContext;
+import com.wimbledor.entities.ICombatEntity;
+import com.wimbledor.combat.ICombatAction;
 import com.wimbledor.entities.Player;
 import com.wimbledor.engine.EncounterDeck;
 import com.wimbledor.engine.EncounterFactory;
@@ -12,12 +14,12 @@ import com.wimbledor.equipment.weapons.CruddySword;
 import javax.swing.*;
 import java.awt.*;
 import java.util.List;
+import java.util.function.BiConsumer;
 
 public class MainFrame extends JFrame {
     private final CardView       cardView;
-
     private final EnemyPanel     enemyPanel;
-    private  ActionPanel    actionPanel;
+    private final ActionPanel    actionPanel;
     private final LogPanel       logPanel;
     private final PlayerInfoPanel infoPanel;
     private final JPanel         leftContainer;
@@ -29,21 +31,21 @@ public class MainFrame extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BorderLayout(10,10));
 
-        // right stats
+        // right‐side status panel
         infoPanel = new PlayerInfoPanel(player);
 
-        // left vertical stack
+        // left stack: narrative or combat UI
         leftContainer = new JPanel();
         leftContainer.setLayout(new BoxLayout(leftContainer, BoxLayout.Y_AXIS));
-
         cardView    = new CardView();
-        enemyPanel  = new EnemyPanel(List.of());
+        enemyPanel  = new EnemyPanel();
         actionPanel = new ActionPanel();
         logPanel    = new LogPanel();
 
-        enemyPanel .setVisible(false);
+        // start with narrative view
+        enemyPanel.setVisible(false);
         actionPanel.setVisible(false);
-        logPanel   .setVisible(false);
+        logPanel.setVisible(false);
 
         leftContainer.add(cardView);
         leftContainer.add(enemyPanel);
@@ -57,67 +59,86 @@ public class MainFrame extends JFrame {
         );
         split.setResizeWeight(0.7);
         add(split, BorderLayout.CENTER);
+
+        // set up player, gear, encounter deck
         GameContext.setPlayer(player);
         EquipmentManager.getInstance().equipWeapon(new CruddySword());
-        // controller wiring
         EncounterDeck deck = new EncounterDeck(EncounterFactory.generateEncounters());
+
+        // instantiate controller and let it wire everything
         controller = new CardController(
                 deck, cardView, enemyPanel, actionPanel, logPanel, this
         );
+        // game‐wide logger → logPanel
         GameContext.setLogger(logPanel::append);
-        // start
-        controller.start();
+
+        controller.start();  // kicks off the first draw
 
         pack();
         setLocationRelativeTo(null);
         setVisible(true);
     }
-    public void refreshCombatUI(
-            java.util.List<com.wimbledor.entities.ICombatEntity> enemies,
-            TurnManager tm,
-            java.util.function.BiConsumer<com.wimbledor.combat.ICombatAction,
-                    java.util.List<com.wimbledor.entities.ICombatEntity>> onActionSelected
-    ) {
-        leftContainer.removeAll();
 
-        // 1) Enemy row
-        enemyPanel.updateEnemies(enemies);
-        leftContainer.add(enemyPanel);
-
-        // 2) Action row
-        actionPanel = new ActionPanel();
-        actionPanel.updateActions(tm, onActionSelected);
-        leftContainer.add(actionPanel);
-
-        // 3) Log row
-        leftContainer.add(logPanel);
-
-        leftContainer.revalidate();
-        leftContainer.repaint();
-    }
     /**
-     * Lets the controller swap *exactly* what sits on the left of the split.
-     * Internally we wrap in a scroll‐pane if you pass a raw component.
+     * Called by CardController to swap into combat mode.
+     * Pass in the live enemies, your TurnManager, and the controller’s action‐handler.
      */
-    public void setCenterComponent(JComponent comp) {
-        Component left;
-        if (comp instanceof JScrollPane) {
-            left = comp;
-        } else {
-            left = new JScrollPane(comp);
-        }
-        split.setLeftComponent(left);
-        split.setDividerLocation(0.7);
-        revalidate();
-        repaint();
+    public void refreshCombatUI(
+            List<ICombatEntity> enemies,
+            TurnManager tm,
+            BiConsumer<ICombatAction, List<ICombatEntity>> onActionSelected
+    ) {
+        // show the panels
+        cardView   .setVisible(false);
+        enemyPanel .setVisible(true);
+        actionPanel.setVisible(true);
+        logPanel   .setVisible(true);
+
+        // drive the data
+        enemyPanel .updateEnemies(enemies);
+        actionPanel.updateActions(
+                tm.getPlayerEntity().getAvailableActions()
+        );
+
+        // leave the wiring of click‐listeners to your controller:
+        //   controller.initCombatListeners(tm, onActionSelected);
+        // You could also expose these panels via getters (below) so
+        // CardController can say:
+        //    getActionPanel().setActionClickListener(...)
+        //    getEnemyPanel().setEnemyClickListener(...)
     }
 
-    /** Refresh all panels. */
-    public void refresh() {
+    /** Switch back to narrative mode */
+    public void refreshNarrativeUI() {
+        cardView   .setVisible(true);
+        enemyPanel .setVisible(false);
+        actionPanel.setVisible(false);
+        logPanel   .setVisible(false);
+        cardView.repaint();
+    }
+
+    // ——— Helpers for your controller wiring ———
+
+    /** Let CardController hook into user clicks on actions. */
+    public ActionPanel getActionPanel() {
+        return actionPanel;
+    }
+
+    /** Let CardController hook into user clicks on enemies. */
+    public EnemyPanel getEnemyPanel() {
+        return enemyPanel;
+    }
+
+    /** Expose the log so CardController can append messages directly. */
+    public LogPanel getLogPanel() {
+        return logPanel;
+    }
+
+    /** Always repaint everything. */
+    public void refreshAll() {
         leftContainer.revalidate();
         leftContainer.repaint();
         infoPanel.refresh();
-        revalidate();
         repaint();
     }
 }

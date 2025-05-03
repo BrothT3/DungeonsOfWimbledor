@@ -1,36 +1,45 @@
-// src/com/wimbledor/ui/EnemyPanel.java
 package com.wimbledor.ui;
 
 import com.wimbledor.entities.ICombatEntity;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.List;
+import java.util.function.Consumer;
 
-/**
- * Displays a horizontal row of enemy “cards” in purple.
- */
 public class EnemyPanel extends JPanel {
-    public EnemyPanel(List<ICombatEntity> enemies) {
+    private Consumer<ICombatEntity> onEnemyClicked;
+
+    public EnemyPanel() {
         setLayout(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        setBackground(new Color(128, 0, 128)); // dark purple
-        updateEnemies(enemies);
+        setBackground(Color.DARK_GRAY);
     }
 
-    /** Rebuilds the panel to show the given enemies. */
+    /** Controller calls this once, to install its callback. */
+    public void setEnemyClickListener(Consumer<ICombatEntity> listener) {
+        this.onEnemyClicked = listener;
+    }
+
+    /**
+     * Pure‐UI rebuild of the enemy row.
+     * Each EnemyCard gets a mouse‐click listener that simply
+     * calls onEnemyClicked.accept(thatEnemy).
+     */
     public void updateEnemies(List<ICombatEntity> enemies) {
         removeAll();
-        for (ICombatEntity e : enemies) {
-            JPanel card = new JPanel();
-            card.setPreferredSize(new Dimension(100, 100));
-            card.setBackground(new Color(160, 32, 240)); // lighter purple
-            card.setBorder(BorderFactory.createLineBorder(Color.WHITE, 2));
-
-            JLabel name = new JLabel(e.getName(), SwingConstants.CENTER);
-            name.setForeground(Color.WHITE);
-            name.setFont(name.getFont().deriveFont(Font.BOLD, 12f));
-            card.add(name);
-
+        for (ICombatEntity enemy : enemies) {
+            EnemyCard card = new EnemyCard(enemy);
+            card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            card.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    if (onEnemyClicked != null) {
+                        onEnemyClicked.accept(enemy);
+                    }
+                }
+            });
             add(card);
         }
         revalidate();

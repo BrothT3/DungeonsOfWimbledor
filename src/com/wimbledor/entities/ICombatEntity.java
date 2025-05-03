@@ -57,7 +57,7 @@ public interface ICombatEntity {
      * Player → gear, skills, consumables, buffs.
      * Monster → its predefined card actions.
      */
-    List<ICombatAction> getAvailableActions(TurnManager tm);
+    List<ICombatAction> getAvailableActions();
 
     /**
      * Called by TurnManager when it’s this entity’s turn.

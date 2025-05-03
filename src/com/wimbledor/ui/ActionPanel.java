@@ -1,33 +1,19 @@
-// src/com/wimbledor/ui/ActionPanel.java
 package com.wimbledor.ui;
 
 import com.wimbledor.combat.ICombatAction;
-import com.wimbledor.combat.TargetMode;
-import com.wimbledor.combat.TurnManager;
-import com.wimbledor.entities.ICombatEntity;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.util.List;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class ActionPanel extends JPanel {
-    public ActionPanel() {
-        // CHANGED: empty ctor; actual buttons are added in updateActions(...)
-    }
+    private Consumer<ICombatAction> onActionClicked;
 
-    /**
-     * Builds the player's action buttons *only* on their turn.
-     *
-     * @param tm                current TurnManager
-     * @param onActionSelected  callback receives (action, targets)
-     */
-    public void updateActions(TurnManager tm,
-                              BiConsumer<ICombatAction, List<ICombatEntity>> onActionSelected) {
-        removeAll();                       // clear out old buttons
+    public ActionPanel() {
         setLayout(new BorderLayout(5,5));
-        setBackground(new Color(0xFFEB3B));        // yellow
+        setBackground(new Color(0xFFEB3B));
         setBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createLineBorder(Color.DARK_GRAY),
                 "Actions",
@@ -35,62 +21,39 @@ public class ActionPanel extends JPanel {
                 TitledBorder.TOP,
                 getFont().deriveFont(Font.BOLD, 14f)
         ));
+    }
 
-        // Header label
+    /** Controller calls this once, to install its callback. */
+    public void setActionClickListener(Consumer<ICombatAction> listener) {
+        this.onActionClicked = listener;
+    }
+
+    /**
+     * Pure‐UI rebuild of all buttons.
+     * Clicking a button simply fires onActionClicked.accept(act).
+     */
+    public void updateActions(List<ICombatAction> actions) {
+        removeAll();
+
+        // 1) Header
         JLabel header = new JLabel("Choose an action:", SwingConstants.CENTER);
-        header.setFont(header.getFont().deriveFont(Font.BOLD, 12f));
+        header.setFont(getFont().deriveFont(Font.BOLD, 12f));
         add(header, BorderLayout.NORTH);
 
-        // Container for buttons
-        JPanel btnContainer = new JPanel();
+        // 2) Button list
+        JPanel btnContainer = new JPanel(new GridLayout(0, 1, 5, 5));
         btnContainer.setBackground(new Color(0xFFEB3B));
-        btnContainer.setLayout(new BoxLayout(btnContainer, BoxLayout.Y_AXIS));
-        btnContainer.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
-
-        // CHANGED: Gather actions from tm.getPlayerEntity()
-        List<ICombatAction> actions = tm.getPlayerEntity().getAvailableActions(tm);
         for (ICombatAction act : actions) {
             JButton btn = new JButton(act.getName());
-            btn.setAlignmentX(Component.CENTER_ALIGNMENT);
-            btn.setMaximumSize(new Dimension(180, 28));
-            btn.setPreferredSize(new Dimension(160, 28));
             btn.addActionListener(e -> {
-                // CHANGED: *Only* report the chosen action & targets,
-                // UI/controller will execute it.
-                List<ICombatEntity> targets;
-                switch (act.getTargetMode()) {
-                    case SELF -> targets = List.of(tm.getPlayerEntity());
-                    case ALL_ENEMIES -> targets = tm.getEnemiesOf(tm.getPlayerEntity().getTeam());
-                    case SINGLE_ENEMY -> {
-                        var list = tm.getEnemiesOf(tm.getPlayerEntity().getTeam());
-                        if (list.isEmpty()) return;
-                        if (list.size() == 1) {
-                            targets = list;
-                        } else {
-                            String[] names = list.stream()
-                                    .map(ICombatEntity::getName)
-                                    .toArray(String[]::new);
-                            String sel = (String) JOptionPane.showInputDialog(
-                                    this, "Select target:", "Target",
-                                    JOptionPane.PLAIN_MESSAGE, null, names, names[0]
-                            );
-                            if (sel == null) return;
-                            targets = List.of(
-                                    list.stream()
-                                            .filter(t -> t.getName().equals(sel))
-                                            .findFirst()
-                                            .orElse(list.get(0))
-                            );
-                        }
-                    }
-                    default -> targets = List.of();
+                if (onActionClicked != null) {
+                    onActionClicked.accept(act);
                 }
-                onActionSelected.accept(act, targets);
             });
             btnContainer.add(btn);
-            btnContainer.add(Box.createVerticalStrut(6));
         }
 
+        // 3) Scroll pane
         JScrollPane scroll = new JScrollPane(
                 btnContainer,
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,

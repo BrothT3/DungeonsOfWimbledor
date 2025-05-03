@@ -73,7 +73,7 @@ public class Player implements ICombatEntity {
     }
 
     @Override
-    public List<ICombatAction> getAvailableActions(TurnManager tm) {
+    public List<ICombatAction> getAvailableActions() {
         List<ICombatAction> acts = new ArrayList<>();
         acts.addAll(skillMgr.getSkills(this));
         acts.addAll(equipMgr.getEquipmentActions(this));
@@ -84,7 +84,7 @@ public class Player implements ICombatEntity {
 
     @Override
     public void takeTurn(TurnManager tm) {
-        List<ICombatAction> acts = getAvailableActions(tm);
+        List<ICombatAction> acts = getAvailableActions();
         if (acts.isEmpty()) return;
         ICombatAction choice = acts.get(new Random().nextInt(acts.size()));
         List<ICombatEntity> targets = tm.getEnemiesOf(getTeam());

@@ -181,7 +181,7 @@ public abstract class BaseNPC implements ICombatEntity {
     }
 
     @Override
-    public List<ICombatAction> getAvailableActions(TurnManager tm) {
+    public List<ICombatAction> getAvailableActions() {
         return new ArrayList<>(actions);
     }
 
