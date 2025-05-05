@@ -1,9 +1,8 @@
 // src/com/wimbledor/entities/ICombatEntity.java
 package com.wimbledor.entities;
 
-import com.wimbledor.combat.ICombatAction;
-import com.wimbledor.combat.TurnManager;
-import com.wimbledor.effects.Buff;
+import com.wimbledor.combat.CombatActions.ICombatAction;
+import com.wimbledor.combat.aiBrains.Decision;
 
 import java.util.List;
 
@@ -17,7 +16,7 @@ public interface ICombatEntity {
      * Unique name for logs/UI
      */
     String getName();
-
+    Decision decideNextAction(List<ICombatEntity> foes);
 
     Team getTeam();
 
@@ -60,16 +59,11 @@ public interface ICombatEntity {
     /**
      * Called by TurnManager when it’s this entity’s turn.
      */
-    void takeTurn(TurnManager tm);
 
     /**
      * Buff/debuff management
      */
-    List<Buff> getBuffs();
 
-    void addBuff(Buff buff);
-
-    void removeBuff(Buff buff);
 
     int getStrength();
     int getAgility();

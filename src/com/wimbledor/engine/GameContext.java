@@ -2,8 +2,8 @@
 package com.wimbledor.engine;
 
 import com.wimbledor.assets.BattleCard;
-import com.wimbledor.assets.ICard;
-import com.wimbledor.combat.TurnManager;
+import com.wimbledor.combat.TurnBasedSystem.TurnQueue;
+import com.wimbledor.effects.StatusEffectManager;
 import com.wimbledor.entities.Player;
 
 import javax.swing.*;
@@ -47,22 +47,17 @@ public class GameContext {
      * Immediately launches a battle using the given BattleCard.
      * Post‐combat flow is now handled entirely in CardController.resolve(...).
      */
-    public static TurnManager startBattleWith(Player p, BattleCard card) {
+    public static TurnQueue startBattleWith(Player p, BattleCard card) {
         List<com.wimbledor.entities.ICombatEntity> combatants = card.getMonsters();
         // No more narrative callback here—CardController will drive post‐combat.
-        return new TurnManager(player, combatants);
+        return new TurnQueue(player, combatants);
     }
+    private static StatusEffectManager effects;
 
-    /**
-     * (Optional) If you still need to inject
-     * a standalone narrative card mid‐run,
-     * call this from your controller directly.
-     */
-    public static void presentEncounter(ICard encounterCard) {
-        // You can have your CardController handle this,
-        // e.g. controller.showSpecific(encounterCard);
-        throw new UnsupportedOperationException(
-                "presentEncounter() is now deprecated; use your controller directly."
-        );
+    public static void setStatusEffectManager(StatusEffectManager m) {
+        effects = m;
+    }
+    public static StatusEffectManager getStatusEffectManager() {
+        return effects;
     }
 }

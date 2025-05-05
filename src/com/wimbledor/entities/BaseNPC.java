@@ -1,20 +1,29 @@
 // src/com/wimbledor/entities/BaseNPC.java
 package com.wimbledor.entities;
 
-import com.wimbledor.combat.CombatUtils;
-import com.wimbledor.combat.ICombatAction;
-import com.wimbledor.combat.TurnManager;
-import com.wimbledor.effects.Buff;
+import com.wimbledor.combat.CombatActions.ICombatAction;
+import com.wimbledor.combat.aiBrains.Decision;
+import com.wimbledor.combat.aiBrains.AiBehavior;
+import com.wimbledor.combat.aiBrains.DefaultAiBehavior;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 /**
  * Base class for any non-player combatant: monsters, summons, allies, etc.
  * Pure combat logic + flavor hooks + reward stats.
  */
 public abstract class BaseNPC implements ICombatEntity {
+    private AiBehavior brain;
+    private static final AiBehavior DEFAULT_BEHAVIOR = new DefaultAiBehavior();
+
+    public void setBehavior(AiBehavior behavior) {
+        this.brain = behavior;
+    }
+    @Override
+    public Decision decideNextAction(List<ICombatEntity> foes) {
+        return brain.decide(this, foes);
+    }
     private final String name;
     private final Team team;
 
@@ -33,8 +42,40 @@ public abstract class BaseNPC implements ICombatEntity {
     private final int expReward;
 
     private final List<ICombatAction> actions = new ArrayList<>();
-    private final List<Buff> buffs = new ArrayList<>();
 
+
+    protected BaseNPC(String name,
+                      Team team,
+                      int maxHp,
+                      int attack,
+                      int defense,
+                      int defensePenetration,
+                      int accuracy,
+                      int evasion,
+                      int speed,
+                      int critChance,
+                      int critMultiplier,
+                      int goldReward,
+                      int expReward,
+                      List<ICombatAction> actions,
+                      AiBehavior brain) {
+        this.name = name;
+        this.team = team;
+        this.maxHp = maxHp;
+        this.currentHp = maxHp;
+        this.attack = attack;
+        this.defense = defense;
+        this.defensePenetration = defensePenetration;
+        this.accuracy = accuracy;
+        this.evasion = evasion;
+        this.speed = speed;
+        this.critChance = critChance;
+        this.critMultiplier = critMultiplier;
+        this.goldReward = goldReward;
+        this.expReward = expReward;
+        this.brain = brain;
+        if (actions != null) this.actions.addAll(actions);
+    }
     protected BaseNPC(String name,
                       Team team,
                       int maxHp,
@@ -63,6 +104,7 @@ public abstract class BaseNPC implements ICombatEntity {
         this.critMultiplier = critMultiplier;
         this.goldReward = goldReward;
         this.expReward = expReward;
+        this.brain = DEFAULT_BEHAVIOR;
         if (actions != null) this.actions.addAll(actions);
     }
 
@@ -164,47 +206,10 @@ public abstract class BaseNPC implements ICombatEntity {
     }
 
     @Override
-    public List<Buff> getBuffs() {
-        return List.copyOf(buffs);
-    }
-
-    @Override
-    public void addBuff(Buff buff) {
-        buffs.add(buff);
-        buff.applyInitial(this);
-    }
-
-    @Override
-    public void removeBuff(Buff buff) {
-        buffs.remove(buff);
-        buff.remove(this);
-    }
-
-    @Override
     public List<ICombatAction> getAvailableActions() {
         return new ArrayList<>(actions);
     }
 
-    @Override
-    public void takeTurn(TurnManager tm) {
-        // 1) Who to attack?  Use the TM helper to find living players.
-        List<ICombatEntity> players = new ArrayList<>();
-        players.add(tm.getPlayerEntity());
-        if (actions.isEmpty() || players.isEmpty()) return;
-
-        // 2) Pick a random combat action
-        ICombatAction choice = actions
-                .get(new Random().nextInt(actions.size()));
-
-        // 3) Let it tweak any temporary stats
-        choice.modifyStats(this, players);
-
-        // 4) Choose one player at random
-        ICombatEntity target = players
-                .get(new Random().nextInt(players.size()));
 
 
-        // 5) **Centralize** your resolution (buff hooks, hit/crit roll, damage, onPost hooks)
-        CombatUtils.executeAction(choice, this, List.of(target));
-    }
 }

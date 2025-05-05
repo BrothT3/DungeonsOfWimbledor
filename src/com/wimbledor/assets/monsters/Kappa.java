@@ -1,6 +1,6 @@
 package com.wimbledor.assets.monsters;
 
-import com.wimbledor.combat.CombatActions.Slash;
+import com.wimbledor.combat.CombatActions.concrete.Slash;
 import com.wimbledor.entities.BaseNPC;
 import com.wimbledor.entities.Team;
 
@@ -22,7 +22,7 @@ public class Kappa extends BaseNPC {
                 /* critMultiplier */     2,
                 /* goldReward */         3,
                 /* expReward */          5,
-                List.of(new Slash())
+                List.of(new Slash(1))
         );
     }
 
@@ -34,5 +34,35 @@ public class Kappa extends BaseNPC {
     @Override
     public String getHoverText() {
         return "a water-dwelling small man with turtle-like features. Loves to drown unwatched children";
+    }
+
+    @Override
+    public int getStrength() {
+        return 0;
+    }
+
+    @Override
+    public int getAgility() {
+        return 0;
+    }
+
+    @Override
+    public int getEndurance() {
+        return 0;
+    }
+
+    @Override
+    public int getWillpower() {
+        return 0;
+    }
+
+    @Override
+    public int getKnowledge() {
+        return 0;
+    }
+
+    @Override
+    public int getCunning() {
+        return 0;
     }
 }

@@ -1,16 +1,14 @@
 // src/com/wimbledor/entities/Player.java
 package com.wimbledor.entities;
 
-import com.wimbledor.combat.ICombatAction;
-import com.wimbledor.combat.TurnManager;
-import com.wimbledor.effects.Buff;
+import com.wimbledor.combat.CombatActions.ICombatAction;
+import com.wimbledor.combat.aiBrains.Decision;
 import com.wimbledor.equipment.Consumable;
 import com.wimbledor.equipment.EquipmentManager;
 import com.wimbledor.skills.SkillManager;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 /**
  * Full ICombatEntity for the player, with:
@@ -29,7 +27,6 @@ public class Player implements ICombatEntity {
     private int currentHp;
     private int level, experience, gold;
 
-    private final List<Buff> buffs = new ArrayList<>();
     private final List<Consumable> consumables = new ArrayList<>();
 
     private final EquipmentManager equipMgr = EquipmentManager.getInstance();
@@ -78,19 +75,10 @@ public class Player implements ICombatEntity {
         acts.addAll(skillMgr.getSkills(this));
         acts.addAll(equipMgr.getEquipmentActions(this));
         acts.addAll(consumables);
-        for (Buff b : buffs) acts.addAll(b.getActions(this));
         return acts;
     }
 
-    @Override
-    public void takeTurn(TurnManager tm) {
-        List<ICombatAction> acts = getAvailableActions();
-        if (acts.isEmpty()) return;
-        ICombatAction choice = acts.get(new Random().nextInt(acts.size()));
-        List<ICombatEntity> targets = tm.getEnemiesOf(getTeam());
-        choice.modifyStats(this, targets);
-        choice.execute(this, targets.get(0));
-    }
+
 
     // === Progression ===
     public void addExperience(int xp) { this.experience += xp; }
@@ -121,6 +109,12 @@ public class Player implements ICombatEntity {
 
     // === ICombatEntity ===
     @Override public String getName()          { return name; }
+
+    @Override
+    public Decision decideNextAction(List<ICombatEntity> foes) {
+        return null;
+    }
+
     @Override public Team   getTeam()          { return Team.PLAYER; }
     @Override public boolean isAlive()         { return currentHp > 0; }
     @Override public int     getCurrentHp()    { return currentHp; }
@@ -131,13 +125,13 @@ public class Player implements ICombatEntity {
     @Override
     public int getAttack() {
         int s = baseAttack + equipMgr.getAttackBonus(this);
-        for (Buff b : buffs) s = b.modifyAttack(s);
+
         return s;
     }
     @Override
     public int getDefense() {
         int s = baseDefense + equipMgr.getDefenseBonus(this);
-        for (Buff b : buffs) s = b.modifyDefense(s);
+
         return s;
     }
     @Override public int getDefensePenetration() {
@@ -146,37 +140,34 @@ public class Player implements ICombatEntity {
     @Override
     public int getAccuracy() {
         int s = baseAccuracy + equipMgr.getAccuracyBonus(this);
-        for (Buff b : buffs) s = b.modifyAccuracy(s);
+
         return s;
     }
     @Override
     public int getEvasion() {
         int s = baseEvasion + equipMgr.getEvasionBonus(this);
-        for (Buff b : buffs) s = b.modifyEvasion(s);
+
         return s;
     }
     @Override
     public int getSpeed() {
         int s = baseSpeed + equipMgr.getSpeedBonus(this);
-        for (Buff b : buffs) s = b.modifySpeed(s);
+
         return s;
     }
     @Override
     public int getCritChance() {
         int s = baseCritChance + equipMgr.getCritChanceBonus(this);
-        for (Buff b : buffs) s = b.modifyCritChance(s);
+
         return s;
     }
     @Override
     public int getCritMultiplier() {
         int s = baseCritMultiplier + equipMgr.getCritDamageBonus(this);
-        for (Buff b : buffs) s = b.modifyCritMultiplier(s);
+
         return s;
     }
 
-    @Override public List<Buff> getBuffs()                { return List.copyOf(buffs); }
-    @Override public void addBuff(Buff b)                 { buffs.add(b); b.applyInitial(this); }
-    @Override public void removeBuff(Buff b)              { buffs.remove(b); b.remove(this); }
 
     @Override
     public int getStrength() {

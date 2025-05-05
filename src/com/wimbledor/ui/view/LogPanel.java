@@ -1,5 +1,5 @@
 // src/com/wimbledor/ui/LogPanel.java
-package com.wimbledor.ui;
+package com.wimbledor.ui.view;
 
 import javax.swing.*;
 import java.awt.*;

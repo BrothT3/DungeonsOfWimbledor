@@ -1,7 +1,7 @@
 // src/com/wimbledor/cards/MonsterCards/DemonCard.java
 package com.wimbledor.assets.monsters;
 
-import com.wimbledor.combat.CombatActions.Slash;
+import com.wimbledor.combat.CombatActions.concrete.Slash;
 import com.wimbledor.entities.BaseNPC;
 import com.wimbledor.entities.Team;
 
@@ -26,7 +26,7 @@ public class DemonCard extends BaseNPC {
                 /* critMultiplier */       2,
                 /* goldReward */           10,
                 /* expReward */            20,
-                List.of(new Slash())
+                List.of(new Slash(2))
         );
     }
 
@@ -38,5 +38,35 @@ public class DemonCard extends BaseNPC {
     @Override
     public String getHoverText() {
         return "A horned fiend wreathed in flames—defeat it or get burned.";
+    }
+
+    @Override
+    public int getStrength() {
+        return 0;
+    }
+
+    @Override
+    public int getAgility() {
+        return 0;
+    }
+
+    @Override
+    public int getEndurance() {
+        return 0;
+    }
+
+    @Override
+    public int getWillpower() {
+        return 0;
+    }
+
+    @Override
+    public int getKnowledge() {
+        return 0;
+    }
+
+    @Override
+    public int getCunning() {
+        return 0;
     }
 }

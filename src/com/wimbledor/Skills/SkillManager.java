@@ -1,6 +1,6 @@
 package com.wimbledor.skills;
 
-import com.wimbledor.combat.ICombatAction;
+import com.wimbledor.combat.CombatActions.ICombatAction;
 import com.wimbledor.entities.ICombatEntity;
 import com.wimbledor.entities.Player;
 

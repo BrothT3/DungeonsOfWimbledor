@@ -1,8 +1,8 @@
 // src/com/wimbledor/cards/MonsterCards/GoblinCard.java
 package com.wimbledor.assets.monsters;
 
-import com.wimbledor.combat.CombatActions.Backstab;
-import com.wimbledor.combat.CombatActions.Slash;
+import com.wimbledor.combat.CombatActions.concrete.Backstab;
+import com.wimbledor.combat.CombatActions.concrete.Slash;
 import com.wimbledor.entities.BaseNPC;
 import com.wimbledor.entities.Team;
 
@@ -24,7 +24,7 @@ public class GoblinCard extends BaseNPC {
                 /* critMultiplier */     2,
                 /* goldReward */         3,
                 /* expReward */          5,
-                List.of(new Slash(), new Backstab())
+                List.of(new Slash(1), new Backstab())
         );
     }
 
@@ -36,5 +36,35 @@ public class GoblinCard extends BaseNPC {
     @Override
     public String getHoverText() {
         return "Small and nimble, these goblins swarm in numbers.";
+    }
+
+    @Override
+    public int getStrength() {
+        return 0;
+    }
+
+    @Override
+    public int getAgility() {
+        return 0;
+    }
+
+    @Override
+    public int getEndurance() {
+        return 0;
+    }
+
+    @Override
+    public int getWillpower() {
+        return 0;
+    }
+
+    @Override
+    public int getKnowledge() {
+        return 0;
+    }
+
+    @Override
+    public int getCunning() {
+        return 0;
     }
 }

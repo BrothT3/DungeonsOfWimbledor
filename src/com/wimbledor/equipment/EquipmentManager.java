@@ -1,7 +1,7 @@
 // src/com/wimbledor/equipment/EquipmentManager.java
 package com.wimbledor.equipment;
 
-import com.wimbledor.combat.ICombatAction;
+import com.wimbledor.combat.CombatActions.ICombatAction;
 import com.wimbledor.entities.ICombatEntity;
 import com.wimbledor.engine.GameContext;
 

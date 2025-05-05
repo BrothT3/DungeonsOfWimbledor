@@ -1,10 +1,10 @@
 package com.wimbledor.combat;
 
-public class Stats {
+public class BaseStats {
     public int strength, agility, endurance;
     public int willpower, knowledge, cunning;
 
-    public Stats(int str, int agi, int end,
+    public BaseStats(int str, int agi, int end,
                  int wil, int kno, int cun) {
         strength  = str;
         agility   = agi;

@@ -1,6 +1,8 @@
 // src/com/wimbledor/combat/ICombatAction.java
-package com.wimbledor.combat;
+package com.wimbledor.combat.CombatActions;
 
+import com.wimbledor.combat.AttackResult;
+import com.wimbledor.combat.enums.TargetMode;
 import com.wimbledor.entities.ICombatEntity;
 
 import java.util.List;
@@ -65,4 +67,10 @@ public interface ICombatAction {
                     + critSuffix;
         }
     }
+
+    default  void postExecute(ICombatEntity actor, ICombatEntity target, AttackResult result){
+        /* No OP!*/
+    };
+
+    double getDurationSeconds();
 }

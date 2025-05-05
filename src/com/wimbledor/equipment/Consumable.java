@@ -1,7 +1,7 @@
 package com.wimbledor.equipment;
 
-import com.wimbledor.combat.ICombatAction;
-import com.wimbledor.combat.TargetMode;
+import com.wimbledor.combat.CombatActions.ICombatAction;
+import com.wimbledor.combat.enums.TargetMode;
 import com.wimbledor.entities.ICombatEntity;
 
 import java.util.List;

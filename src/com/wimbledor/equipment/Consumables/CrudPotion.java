@@ -1,9 +1,9 @@
-package com.wimbledor.equipment;
+package com.wimbledor.equipment.Consumables;
 
-import com.wimbledor.combat.ICombatAction;
-import com.wimbledor.combat.TargetMode;
+import com.wimbledor.combat.enums.TargetMode;
 import com.wimbledor.entities.ICombatEntity;
 import com.wimbledor.entities.Player;
+import com.wimbledor.equipment.Consumable;
 
 import java.util.Random;
 
@@ -34,6 +34,11 @@ public class CrudPotion extends Consumable {
     @Override
     public void modifyStats(ICombatEntity actor, java.util.List<ICombatEntity> targets) {
         // No temporary stat tweaks before execution
+    }
+
+    @Override
+    public double getDurationSeconds() {
+        return 0;
     }
 
     @Override

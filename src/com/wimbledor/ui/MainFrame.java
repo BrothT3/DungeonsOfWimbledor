@@ -1,144 +1,97 @@
 // src/com/wimbledor/ui/MainFrame.java
 package com.wimbledor.ui;
 
-import com.wimbledor.combat.TurnManager;
-import com.wimbledor.engine.GameContext;
-import com.wimbledor.entities.ICombatEntity;
-import com.wimbledor.combat.ICombatAction;
-import com.wimbledor.entities.Player;
-import com.wimbledor.engine.EncounterDeck;
-import com.wimbledor.engine.EncounterFactory;
-import com.wimbledor.equipment.EquipmentManager;
-import com.wimbledor.equipment.weapons.CruddySword;
+import com.wimbledor.ui.view.NarrativePanel;
+import com.wimbledor.ui.view.*;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.List;
-import java.util.function.BiConsumer;
 
+/**
+ * The main application window. Left pane swaps between CombatPanel and NarrativePanel.
+ * Right pane shows persistent player info: stats, equipment, consumables, inventory, gold.
+ */
 public class MainFrame extends JFrame {
-    private final CardView       cardView;
-    private final EnemyPanel     enemyPanel;
-    private final ActionPanel    actionPanel;
-    private final LogPanel       logPanel;
-    private final PlayerInfoPanel infoPanel;
-    private final JPanel         leftContainer;
-    private final JSplitPane     split;
-    private final CardController controller;
+    private final CardLayout leftLayout;
+    private final JPanel leftContainer;
+    private final CombatPanel combatPanel;
+    private final NarrativePanel narrativePanel;
 
-    public MainFrame(Player player) {
+    private final JPanel rightContainer;
+    private final StatsPanel statsPanel;
+    private final EquipmentPanel equipmentPanel;
+    private final ConsumablesPanel consumablesPanel;
+    private final InventoryButton inventoryButton;
+    private final GoldPanel goldPanel;
+
+    public MainFrame() {
         super("Dungeons of WimbleDor");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setLayout(new BorderLayout(10,10));
+        setLayout(new BorderLayout(8, 8));
 
-        // right‐side status panel
-        infoPanel = new PlayerInfoPanel(player);
+        // Left: CardLayout for Combat vs Narrative
+        leftLayout = new CardLayout();
+        leftContainer = new JPanel(leftLayout);
+        combatPanel = new CombatPanel();
+        narrativePanel = new NarrativePanel();
+        leftContainer.add(combatPanel, "COMBAT");
+        leftContainer.add(narrativePanel, "NARRATIVE");
+        add(leftContainer, BorderLayout.CENTER);
 
-        // left stack: narrative or combat UI
-        leftContainer = new JPanel();
-        leftContainer.setLayout(new BoxLayout(leftContainer, BoxLayout.Y_AXIS));
-        cardView    = new CardView();
-        enemyPanel  = new EnemyPanel();
-        actionPanel = new ActionPanel();
-        logPanel    = new LogPanel();
-
-        // start with narrative view
-        enemyPanel.setVisible(false);
-        actionPanel.setVisible(false);
-        logPanel.setVisible(false);
-
-        leftContainer.add(cardView);
-        leftContainer.add(enemyPanel);
-        leftContainer.add(actionPanel);
-        leftContainer.add(logPanel);
-
-        split = new JSplitPane(
-                JSplitPane.HORIZONTAL_SPLIT,
-                new JScrollPane(leftContainer),
-                infoPanel
-        );
-        split.setResizeWeight(0.7);
-        add(split, BorderLayout.CENTER);
-
-        // set up player, gear, encounter deck
-        GameContext.setPlayer(player);
-        EquipmentManager.getInstance().equipWeapon(new CruddySword());
-        EncounterDeck deck = new EncounterDeck(EncounterFactory.generateEncounters());
-
-        // instantiate controller and let it wire everything
-        controller = new CardController(
-                deck, cardView, enemyPanel, actionPanel, logPanel, this
-        );
-        // game‐wide logger → logPanel
-        GameContext.setLogger(logPanel::append);
-
-        controller.start();  // kicks off the first draw
+        // Right: vertical stack
+        rightContainer = new JPanel();
+        rightContainer.setLayout(new BoxLayout(rightContainer, BoxLayout.Y_AXIS));
+        statsPanel = new StatsPanel();
+        equipmentPanel = new EquipmentPanel();
+        consumablesPanel = new ConsumablesPanel();
+        inventoryButton = new InventoryButton();
+        goldPanel = new GoldPanel();
+        rightContainer.add(statsPanel);
+        rightContainer.add(Box.createVerticalStrut(8));
+        rightContainer.add(equipmentPanel);
+        rightContainer.add(Box.createVerticalStrut(8));
+        rightContainer.add(consumablesPanel);
+        rightContainer.add(Box.createVerticalStrut(8));
+        rightContainer.add(inventoryButton);
+        rightContainer.add(Box.createVerticalStrut(8));
+        rightContainer.add(goldPanel);
+        add(new JScrollPane(rightContainer), BorderLayout.EAST);
 
         pack();
         setLocationRelativeTo(null);
         setVisible(true);
     }
 
-    /**
-     * Called by CardController to swap into combat mode.
-     * Pass in the live enemies, your TurnManager, and the controller’s action‐handler.
-     */
-    public void refreshCombatUI(
-            List<ICombatEntity> enemies,
-            TurnManager tm,
-            BiConsumer<ICombatAction, List<ICombatEntity>> onActionSelected
-    ) {
-        // show the panels
-        cardView   .setVisible(false);
-        enemyPanel .setVisible(true);
-        actionPanel.setVisible(true);
-        logPanel   .setVisible(true);
-
-        // drive the data
-        enemyPanel .updateEnemies(enemies);
-        actionPanel.updateActions(
-                tm.getPlayerEntity().getAvailableActions()
-        );
-
-        // leave the wiring of click‐listeners to your controller:
-        //   controller.initCombatListeners(tm, onActionSelected);
-        // You could also expose these panels via getters (below) so
-        // CardController can say:
-        //    getActionPanel().setActionClickListener(...)
-        //    getEnemyPanel().setEnemyClickListener(...)
+    /** Show the combat UI on the left. */
+    public void showCombat() {
+        leftLayout.show(leftContainer, "COMBAT");
     }
 
-    /** Switch back to narrative mode */
-    public void refreshNarrativeUI() {
-        cardView   .setVisible(true);
-        enemyPanel .setVisible(false);
-        actionPanel.setVisible(false);
-        logPanel   .setVisible(false);
-        cardView.repaint();
+    /** Show the narrative UI on the left. */
+    public void showNarrative() {
+        leftLayout.show(leftContainer, "NARRATIVE");
     }
 
-    // ——— Helpers for your controller wiring ———
-
-    /** Let CardController hook into user clicks on actions. */
-    public ActionPanel getActionPanel() {
-        return actionPanel;
+    // Getters for panels so controllers can update them:
+    public CombatPanel getCombatPanel() {
+        return combatPanel;
     }
-
-    /** Let CardController hook into user clicks on enemies. */
-    public EnemyPanel getEnemyPanel() {
-        return enemyPanel;
+    public NarrativePanel getNarrativePanel() {
+        return narrativePanel;
     }
-
-    /** Expose the log so CardController can append messages directly. */
-    public LogPanel getLogPanel() {
-        return logPanel;
+    public StatsPanel getStatsPanel() {
+        return statsPanel;
     }
-
-    /** Always repaint everything. */
-    public void refreshAll() {
-        leftContainer.revalidate();
-        leftContainer.repaint();
-        infoPanel.refresh();
-        repaint();
+    public EquipmentPanel getEquipmentPanel() {
+        return equipmentPanel;
+    }
+    public ConsumablesPanel getConsumablesPanel() {
+        return consumablesPanel;
+    }
+    public InventoryButton getInventoryButton() {
+        return inventoryButton;
+    }
+    public GoldPanel getGoldPanel() {
+        return goldPanel;
     }
 }

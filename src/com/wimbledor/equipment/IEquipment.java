@@ -1,6 +1,6 @@
 package com.wimbledor.equipment;
 
-import com.wimbledor.combat.ICombatAction;
+import com.wimbledor.combat.CombatActions.ICombatAction;
 import java.util.List;
 public interface IEquipment {
     String getName();

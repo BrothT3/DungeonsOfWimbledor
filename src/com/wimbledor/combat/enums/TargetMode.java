@@ -1,4 +1,4 @@
-package com.wimbledor.combat;
+package com.wimbledor.combat.enums;
 
 public enum TargetMode {
     SELF,
