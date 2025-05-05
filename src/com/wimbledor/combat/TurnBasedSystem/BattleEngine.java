@@ -1,93 +1,107 @@
+// src/com/wimbledor/combat/TurnBasedSystem/BattleEngine.java
 package com.wimbledor.combat.TurnBasedSystem;
 
-import com.wimbledor.combat.CombatExecutor;
-
-import com.wimbledor.combat.aiBrains.Decision;
 import com.wimbledor.combat.AttackResult;
-
 import com.wimbledor.combat.CombatActions.ICombatAction;
+import com.wimbledor.combat.CombatExecutor;
 import com.wimbledor.combat.TurnResult;
-import com.wimbledor.entities.ICombatEntity;
-import com.wimbledor.entities.Team;
+import com.wimbledor.combat.aiBrains.Decision;
 import com.wimbledor.engine.GameContext;
+import com.wimbledor.entities.ICombatEntity;
+import com.wimbledor.entities.Player;
 
 import java.util.List;
 
 /**
- * Orchestrates the full combat loop: pulls actors by speed,
- * pauses on player turn, and processes AI turns via CombatExecutor.
+ * Controls progression of turn-based combat.
  */
 public class BattleEngine {
-    private final TurnQueue turnQueue;
+    private final Player player;
+    private final List<ICombatEntity> enemies;
+    private final TurnQueue queue;
 
-    public BattleEngine(TurnQueue turnQueue) {
-        this.turnQueue = turnQueue;
+    public BattleEngine(Player player, List<ICombatEntity> enemies) {
+        this.player = player;
+        this.enemies = enemies;
+        this.queue = new TurnQueue(player, enemies);
     }
 
-    /**
-     * Execute exactly one actor’s turn:
-     * - Returns AI_TURN with results when an AI acts
-     * - Returns PLAYER_TURN with foes when it’s the player’s turn
-     * - Returns BATTLE_OVER when no actors remain
-     */
-    public TurnResult step() {
-        // 1) capture the full queue for UI
-        List<ICombatEntity> actors = turnQueue.getTurnOrder();
-
-        // 2) get the next actor
-        ICombatEntity actor = turnQueue.processNextTurn();
-        if (actor == null) {
+    public TurnResult runToPause() {
+        if (queue.isBattleOver()) {
             return TurnResult.battleOver();
         }
 
-        // 3) if it's the player, pause and return full state
-        if (actor.getTeam() == Team.PLAYER) {
-            List<ICombatEntity> foes    = turnQueue.getEnemiesOf(Team.PLAYER);
-            List<ICombatAction> actions = GameContext.getPlayer().getAvailableActions();
-            return TurnResult.playerTurn(actors, foes, actions, List.of());
+        while (!queue.isBattleOver()) {
+            ICombatEntity actor = queue.processNextTurn();
+            if (actor == null || !actor.isAlive()) continue;
+
+            if (actor == player) {
+                return TurnResult.playerTurn(
+                        queue.getTurnOrder(),
+                        queue.getEnemiesOf(actor.getTeam()),
+                        player.getAvailableActions(),
+                        null
+                );
+            } else {
+                return TurnResult.aiTurn(
+                        queue.getTurnOrder(),
+                        queue.getEnemiesOf(actor.getTeam()),
+                        List.of()  // no results yet
+                );
+            }
         }
 
-        // 4) otherwise it's an AI turn—execute it
-        Decision decision = actor.decideNextAction(turnQueue.getEnemiesOf(actor.getTeam()));
-        List<AttackResult> results = CombatExecutor.execute(
-                decision.action, actor, decision.targets
-        );
-        // update foes after the AI action
-        List<ICombatEntity> foesAfter = turnQueue.getEnemiesOf(Team.PLAYER);
-        return TurnResult.aiTurn(actors, foesAfter, results);
+        return TurnResult.battleOver();
     }
 
+    public TurnResult step() {
+        if (queue.isBattleOver()) {
+            return TurnResult.battleOver();
+        }
 
-    /**
-     * Runs step() repeatedly until reaching PLAYER_TURN or BATTLE_OVER.
-     */
-    public TurnResult runToPause() {
-        TurnResult result;
-        do {
-            result = step();
-        } while (result.getType() == TurnResult.Type.AI_TURN);
-        return result;
+        ICombatEntity actor = queue.processNextTurn();
+        if (actor == null || !actor.isAlive()) {
+            return TurnResult.battleOver();
+        }
+
+        if (actor == player) {
+            return TurnResult.playerTurn(
+                    queue.getTurnOrder(),
+                    queue.getEnemiesOf(actor.getTeam()),
+                    player.getAvailableActions(),
+                    List.of()
+            );
+        } else {
+            List<ICombatEntity> foes = queue.getEnemiesOf(actor.getTeam());
+            Decision decision = actor.decideNextAction(foes);
+
+            if (decision == null || decision.targets.isEmpty()) {
+                return TurnResult.aiTurn(queue.getTurnOrder(), foes, List.of());
+            }
+
+            List<AttackResult> results = CombatExecutor.execute(decision.action, actor, decision.targets);
+            return TurnResult.aiTurn(queue.getTurnOrder(), foes, results);
+        }
+    }
+    public ICombatAction peekNextAiAction() {
+        ICombatEntity next = queue.peekNext();
+        if (next == null || next == GameContext.getPlayer()) return null;
+
+        List<ICombatEntity> foes = queue.getEnemiesOf(next.getTeam());
+        Decision decision = next.decideNextAction(foes);
+        return (decision != null) ? decision.action : null;
+    }
+    public TurnResult playerAct(ICombatAction action, List<ICombatEntity> targets) {
+        List<AttackResult> results = CombatExecutor.execute(action, player, targets);
+        return TurnResult.playerTurn(
+                queue.getTurnOrder(),
+                queue.getEnemiesOf(player.getTeam()),
+                player.getAvailableActions(),
+                results
+        );
     }
 
-    /**
-     * Called when the player selects an action + targets:
-     * executes it, re-queues the player, then runs AI to next pause.
-     */
-    public TurnResult playerAct(
-            ICombatAction action,
-            List<ICombatEntity> targets
-    ) {
-        // Execute player action
-        List<AttackResult> playerResults = CombatExecutor.execute(
-                action,
-                GameContext.getPlayer(),
-                targets
-        );
-
-        // Requeue player by speed order
-        turnQueue.playerResolved();
-
-        // Hand off to AI until next player turn or battle end
-        return runToPause();
+    public boolean isBattleOver() {
+        return queue.isBattleOver();
     }
 }

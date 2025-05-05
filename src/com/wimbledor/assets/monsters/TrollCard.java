@@ -1,6 +1,7 @@
 // src/com/wimbledor/cards/MonsterCards/TrollCard.java
 package com.wimbledor.assets.monsters;
 
+import com.wimbledor.combat.BaseStats;
 import com.wimbledor.combat.CombatActions.concrete.Slash;
 import com.wimbledor.entities.BaseNPC;
 import com.wimbledor.entities.Team;
@@ -12,17 +13,9 @@ public class TrollCard extends BaseNPC {
         super(
                 "Troll",
                 Team.ENEMY,
-                /* maxHp */            30,
-                /* attack */           10,
-                /* defense */           8,
-                /* penetration */       2,
-                /* accuracy */         65,
-                /* evasion */           5,
-                /* speed */             4,
-                /* critChance */       10,
-                /* critMultiplier */    2,
-                /* goldReward */        8,
-                /* expReward */        12,
+                new BaseStats(21, 4, 122, 5, 1, 2),
+                8,
+                12,
                 List.of(new Slash(1))
         );
     }
@@ -37,33 +30,5 @@ public class TrollCard extends BaseNPC {
         return "Trolls heal quickly—strike hard and fast!";
     }
 
-    @Override
-    public int getStrength() {
-        return 0;
-    }
 
-    @Override
-    public int getAgility() {
-        return 0;
-    }
-
-    @Override
-    public int getEndurance() {
-        return 0;
-    }
-
-    @Override
-    public int getWillpower() {
-        return 0;
-    }
-
-    @Override
-    public int getKnowledge() {
-        return 0;
-    }
-
-    @Override
-    public int getCunning() {
-        return 0;
-    }
 }

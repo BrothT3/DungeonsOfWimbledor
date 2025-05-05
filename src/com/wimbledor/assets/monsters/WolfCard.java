@@ -1,34 +1,33 @@
 package com.wimbledor.assets.monsters;
 
 import com.wimbledor.combat.BaseStats;
+import com.wimbledor.combat.CombatActions.concrete.Backstab;
+import com.wimbledor.combat.CombatActions.concrete.Bite;
 import com.wimbledor.combat.CombatActions.concrete.Slash;
 import com.wimbledor.entities.BaseNPC;
 import com.wimbledor.entities.Team;
 
 import java.util.List;
 
-public class Kappa extends BaseNPC {
-    public Kappa() {
+public class WolfCard extends BaseNPC {
+    public WolfCard() {
         super(
-                "Kappa",
+                "Wolf",
                 Team.ENEMY,
-                new BaseStats(4, 8, 5, 6, 12, 6),
+                new BaseStats(6, 15, 8, 3, 2, 5),
                 3,
                 5,
-                List.of(new Slash(1))
+                List.of(new Bite())
         );
     }
-
-
     @Override
     public String getRevealText() {
-        return "a small reptilian thing clicks it's beak at you!";
+        return "Snarling, a wolf approaches";
     }
 
     @Override
     public String getHoverText() {
-        return "a water-dwelling small man with turtle-like features. Loves to drown unwatched children";
+        return "man's best friend, a feral beast, a symbol of nobility. but currently, your impending death";
     }
-
 
 }

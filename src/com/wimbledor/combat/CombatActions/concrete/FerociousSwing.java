@@ -11,17 +11,20 @@ import java.util.Map;
 public class FerociousSwing extends StatScalingAttack {
 
 
+
     private static final SkillConfig CONFIG = new SkillConfig(
-            /* basePower   */ 50,
-            /* statWeights */ Map.of(
-            Stat.STRENGTH, 1.0,
-            Stat.AGILITY,  0.5
-    ),
-            /* maxLevel     */ 5,
-            /* thetaBase    */  50,
-            /* deltaTheta   */ 150,
-            /* softnessExp  */   2,
-            /* scaleFactor  */  1.2
+            6,                                  // basePower
+            Map.of(Stat.STRENGTH, 0.7, Stat.ENDURANCE, 0.3), // scaling
+            4,                                  // maxLevel
+            12.0,                               // thetaBase
+            2.0,                                // deltaTheta
+            2.5,                                // softnessExp
+            1.1,                                // scaleFactor
+
+            // New fields
+            0.4,                                // damageVariance: ±20%
+            -10,                                 // accuracyBonus: slightly harder to land
+            null                                // critChanceOverride
     );
 
     public FerociousSwing(int skillLevel) {
@@ -39,6 +42,11 @@ public class FerociousSwing extends StatScalingAttack {
     }
 
     @Override
+    public String getDescription() {
+        return "it's when you forget your own safety, that that of your enemies is most at risk ";
+    }
+
+    @Override
     public String getLogMessage(
             ICombatEntity actor,
             ICombatEntity target,
@@ -49,8 +57,8 @@ public class FerociousSwing extends StatScalingAttack {
         if (!hit) {
             return actor.getName() + " misses "+target.getName()+" with a fercious swing!";
         }
-        return actor.getName() + " Lifts their  " +
-                target.getName() + " for " + (-amount) +
+        return actor.getName() + " swings fiercely at " +
+                target.getName() + " without restraint! dealing " + (amount) +
                 (crit ? " (CRITICAL!)" : "");
     }
 }

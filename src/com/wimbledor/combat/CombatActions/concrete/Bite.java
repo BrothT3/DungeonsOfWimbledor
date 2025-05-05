@@ -1,7 +1,5 @@
-// src/com/wimbledor/combat/CombatActions/Slash.java
 package com.wimbledor.combat.CombatActions.concrete;
 
-import com.wimbledor.combat.*;
 import com.wimbledor.combat.CombatActions.SkillConfig;
 import com.wimbledor.combat.CombatActions.StatScalingAttack;
 import com.wimbledor.combat.enums.Stat;
@@ -10,11 +8,9 @@ import com.wimbledor.entities.ICombatEntity;
 
 import java.util.Map;
 
-public class Slash extends StatScalingAttack {
-    // 1) Define this skill’s tuning in a SkillConfig
-
+public class Bite extends StatScalingAttack {
     private static final SkillConfig CONFIG = new SkillConfig(
-            2,                          // basePower
+            4,                          // basePower
             Map.of(Stat.STRENGTH, 1.0), // scaling: simple STR-based
             5,                          // maxLevel
             10.0,                       // thetaBase
@@ -23,19 +19,19 @@ public class Slash extends StatScalingAttack {
             1.0,                        // scaleFactor
 
             // New fields
-            0.1,                        // damageVariance: ±10%
-            5,                          // accuracyBonus
+            0.2,                        // damageVariance: ±10%
+            0,                          // accuracyBonus
             null                        // critChanceOverride: use default
     );
 
-    /** Pass in the user’s current rank of “Slash” (1–5). */
-    public Slash(int skillLevel) {
-        super(CONFIG, skillLevel, /*forceCrit*/ false);
+    public Bite() {
+        // tier-2 stealth skill, forceCrit = true for guaranteed crit on hit
+        super(CONFIG, /* skillLevel */ 1, /* forceCrit */ true);
     }
 
     @Override
     public String getName() {
-        return "Slash";
+        return "Bite";
     }
 
     @Override
@@ -45,7 +41,7 @@ public class Slash extends StatScalingAttack {
 
     @Override
     public String getDescription() {
-        return "a reliable wing with a blade of some kind. Any idiot could do it";
+        return " utilizing fang as a weapon, through either animalistic ferocity or desperate circumstance";
     }
 
     @Override
@@ -57,10 +53,10 @@ public class Slash extends StatScalingAttack {
             int amount
     ) {
         if (!hit) {
-            return actor.getName() + " tried to slash, but missed!";
+            return actor.getName() + " pounces at "+target.getName()+" but misses it's mark";
         }
-        return actor.getName() + " swings his sword and slashes " +
-                target.getName() + " for " + (amount) +
+        return actor.getName() + " pounces and sinks it's teeth into " +
+                target.getName() + "'s flesh, dealing " + (amount) +
                 (crit ? " (CRITICAL!)" : "");
     }
 }

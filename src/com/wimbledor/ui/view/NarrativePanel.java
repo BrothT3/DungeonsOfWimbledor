@@ -1,5 +1,6 @@
-// src/com/wimbledor/ui/view/NarrativePanel.java
 package com.wimbledor.ui.view;
+
+import com.wimbledor.assets.CardOption;
 
 import javax.swing.*;
 import java.awt.*;
@@ -25,8 +26,7 @@ public class NarrativePanel extends JPanel {
         add(titleLabel, BorderLayout.NORTH);
 
         // Center: description and options
-        JPanel center = new JPanel();
-        center.setLayout(new BorderLayout(4,4));
+        JPanel center = new JPanel(new BorderLayout(4, 4));
         center.setBackground(Color.BLACK);
 
         descriptionArea = new JTextArea();
@@ -59,33 +59,30 @@ public class NarrativePanel extends JPanel {
 
     /**
      * Shows a new stage: updates title, description, and options list.
-     * Clears the info area by default.
+     * Accepts a list of CardOption, which includes labels and codes.
      */
-    public void showStage(String title, String description, List<String> optionLabels) {
+    public void showStage(String title, String description, List<CardOption> options) {
         titleLabel.setText(title);
         descriptionArea.setText(description);
+
+        // Convert to string labels for display
+        List<String> optionLabels = options.stream()
+                .map(opt -> opt.getCode() + ". " + opt.getLabel())
+                .toList();
+
         optionsPanel.setOptions(optionLabels);
         clearInfo();
     }
 
-    /**
-     * Appends a line of info (in a different color) below options.
-     */
     public void appendInfo(String text) {
         infoArea.append(text + "\n");
         infoArea.setCaretPosition(infoArea.getDocument().getLength());
     }
 
-    /**
-     * Clears the info area.
-     */
     public void clearInfo() {
         infoArea.setText("");
     }
 
-    /**
-     * Allows the controller to hook option clicks (hotkey codes).
-     */
     public void setOptionClickListener(java.util.function.Consumer<String> listener) {
         optionsPanel.setOptionClickListener(listener);
     }

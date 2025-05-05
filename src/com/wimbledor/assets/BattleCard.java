@@ -46,15 +46,12 @@ public class BattleCard implements ICard {
                 "F",
                 "Fight",
                 (Player p) -> GameContext.startBattleWith(p, this),
-                this       // ← return this BattleCard, not null
+                this,       // ← return this BattleCard, not null
+                null
         ));
     }
 
-    @Override
-    public ICard onOptionSelected(String code) {
-        // Never exit the card on selection; always return self
-        return this;
-    }
+
 
     /**
      * This method will be invoked by GameContext when the fight is truly over.

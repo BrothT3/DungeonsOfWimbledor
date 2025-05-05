@@ -17,56 +17,56 @@
 //        // Unique endings
 //        EncounterStage endUneasy = new EncounterStage(
 //                "You slip away, uneasy and haunted by the glade’s whispers.",
-//                List.of(new StageOption("C", "Continue", p -> {}, null, null))
+//                List.of(new StageOption("C", "Continue",null, p -> {}, null, null))
 //        );
 //        EncounterStage endBlessed = new EncounterStage(
 //                "A serene peace fills you; the blessing warms your spirit.",
-//                List.of(new StageOption("C", "Continue", p -> {}, null, null))
+//                List.of(new StageOption("C", "Continue", null,p -> {}, null, null))
 //        );
 //        EncounterStage endReward = new EncounterStage(
 //                "Silver acorn and coin pouch in hand, you step forward with newfound fortune.",
-//                List.of(new StageOption("C", "Continue", p -> {}, null, null))
+//                List.of(new StageOption("C", "Continue", null,p -> {}, null, null))
 //        );
 //        EncounterStage endWounded = new EncounterStage(
 //                "Bruised and bleeding, you crawl away to lick your wounds.",
-//                List.of(new StageOption("C", "Continue", p -> {}, null, null))
+//                List.of(new StageOption("C", "Continue", null,p -> {}, null, null))
 //        );
 //
 //        // Branch stages
 //        EncounterStage collapse = new EncounterStage(
 //                "Obsidian shards rain down as the altar shatters. You barely escape the blast, blood trickling.",
-//                List.of(new StageOption("R", "Retreat weakly", p -> p.applyDamage(2), endWounded, null))
+//                List.of(new StageOption("R", "Retreat weakly","-2 health" ,p -> p.applyDamage(2), endWounded, null))
 //        );
 //
 //        EncounterStage defeatWolves = new EncounterStage(
 //                "With the spectral wolves vanquished, a pouch of silver coins gleams at their vanishing spot.",
-//                List.of(new StageOption("C", "Take coins and go", p -> p.addGold(15), endReward, null))
+//                List.of(new StageOption("C", "Take coins and go","+15 gold" ,p -> p.addGold(15), endReward, null))
 //        );
 //
 //        EncounterStage statue = new EncounterStage(
 //                "The statue’s hollow eyes glow. Wolves materialize—your honor demands fight or flight.",
 //                List.of(
-//                        new StageOption("F", "Fight", p -> {}, defeatWolves, new BattleCard("Spectral Wolves", List.of(new Wolf(), new Wolf()))),
-//                        new StageOption("R", "Flee", p -> p.applyDamage(1), endUneasy, null)
+//                        new StageOption("F", "Fight",null ,null, new BattleCard("Spectral Wolves", List.of(new Wolf(), new Wolf()))),
+//                        new StageOption("R", "Flee","you feel shame" ,p -> {                        }, endUneasy, null)
 //                )
 //        );
 //
 //        EncounterStage ritual = new EncounterStage(
 //                "Runes flare, vines surge. You feel strength returning as ancient magics restore you.",
-//                List.of(new StageOption("C", "Embrace renewal", p -> p.addStatus("Renewed"), endBlessed, null))
+//                List.of(new StageOption("C", "Embrace renewal",null ,null /*p -> p.addStatus("Renewed")*/, endBlessed, null))
 //        );
 //
 //        EncounterStage secret = new EncounterStage(
 //                "A silver acorn pulses in your palm, and a hidden pouch jingles with coins.",
-//                List.of(new StageOption("T", "Pocket treasures", p -> { p.addItem("Silver Acorn"); p.addGold(5); }, ritual, null))
+//                List.of(new StageOption("T", "Pocket treasures", null ,p -> {/* p.addItem("Silver Acorn");*/ p.addGold(5); }, ritual, null))
 //        );
 //
 //        EncounterStage investigate = new EncounterStage(
 //                "The altar hums with power; broken vines curl like fingers around it.",
 //                List.of(
-//                        new StageOption("R", "Read runes", p -> p.addXP(5), ritual, null),
-//                        new StageOption("S", "Speak spell", p -> p.addStatus("Charmed"), statue, null),
-//                        new StageOption("D", "Smash it", p -> p.takeDamage(3), collapse, null)
+//                        new StageOption("R", "Read runes",null , p -> p.addXP(5), ritual, null),
+//                        new StageOption("S", "Speak spell",null , p -> p.addStatus("Charmed"), statue, null),
+//                        new StageOption("D", "Smash it", null ,p -> p.applyDamage(3), collapse, null)
 //                )
 //        );
 //

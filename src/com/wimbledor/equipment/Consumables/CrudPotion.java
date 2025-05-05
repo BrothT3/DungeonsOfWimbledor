@@ -58,10 +58,10 @@ public class CrudPotion extends Consumable {
         if (RNG.nextFloat() < 0.20f && user instanceof Player p) {
             if (RNG.nextBoolean()) {
                 // Decrease base attack but not below 1
-                p.setBaseAttack(Math.max(1, p.getBaseAttack() - 1));
-            } else {
-                // Decrease base defense but not below 0
-                p.setBaseDefense(Math.max(0, p.getBaseDefense() - 1));
+//                p.setBaseAttack(Math.max(1, p.getBaseAttack() - 1));
+//            } else {
+//                // Decrease base defense but not below 0
+//                p.setBaseDefense(Math.max(0, p.getBaseDefense() - 1));
             }
         }
     }

@@ -3,6 +3,7 @@ package com.wimbledor.combat;
 
 import com.wimbledor.combat.CombatActions.StatScalingAttack;
 import com.wimbledor.combat.CombatActions.SkillConfig;
+import com.wimbledor.combat.enums.DerivedStat;
 import com.wimbledor.combat.enums.Stat;
 import com.wimbledor.entities.ICombatEntity;
 
@@ -22,84 +23,77 @@ public class CombatMath {
     public record AttackRoll(boolean hit, boolean crit, int damage) {}
 
     /**
-     * Basic damage roll using attack, defense, penetration, crit, etc.
-     */
-    public static AttackRoll rollAttack(
-            ICombatEntity attacker,
-            ICombatEntity defender,
-            double accuracyMultiplier,
-            double damageMultiplier,
-            boolean forceCrit
-    ) {
-        double accRoll = attacker.getAccuracy() * accuracyMultiplier;
-        boolean hit = RNG.nextDouble() * 100 < (accRoll - defender.getEvasion());
-        boolean crit = false;
-        if (hit) {
-            crit = forceCrit || RNG.nextDouble() < attacker.getCritChance() / 100.0;
-        }
-        int attackValue = attacker.getAttack();
-        int penetration = attacker.getDefensePenetration();
-
-        int penPart = Math.min(penetration, attackValue);
-        int nonPen = attackValue - penPart;
-        int effective = Math.max(0, nonPen - defender.getDefense());
-
-        int raw = penPart + effective;
-        int scaled = (int)(raw * damageMultiplier);
-        int damage = crit
-                ? scaled * attacker.getCritMultiplier()
-                : scaled;
-
-        return new AttackRoll(hit, crit, damage);
-    }
-
-    /**
      * Multi-stat soft-capped scaling roll for skills.
      */
     public static AttackRoll rollScaledAttack(
             StatScalingAttack ssa,
-            ICombatEntity     attacker,
-            ICombatEntity     defender
+            ICombatEntity attacker,
+            ICombatEntity defender
     ) {
         SkillConfig cfg = ssa.getConfig();
         int lvl = ssa.getSkillLevel();
-        boolean force = ssa.isForceCrit();
+        boolean forceCrit = ssa.isForceCrit();
 
+        // 1. Compute scaling cap threshold (theta)
         double theta = cfg.thetaBase()
-                + cfg.deltaTheta() * ((double)lvl / cfg.maxLevel());
+                + cfg.deltaTheta() * ((double) lvl / cfg.maxLevel());
 
+        // 2. Soft-capped weighted stat sum
         double sum = 0;
         for (Map.Entry<Stat, Double> entry : cfg.statWeights().entrySet()) {
-            double rawStat = getStat(attacker, entry.getKey());
-            double capped = rawStat / Math.pow(1 + Math.pow(rawStat / theta, cfg.softnessExp()), 1.0/cfg.softnessExp());
+            int statVal = attacker.getStat(entry.getKey());
+            double capped = statVal / Math.pow(1 + Math.pow(statVal / theta, cfg.softnessExp()), 1.0 / cfg.softnessExp());
             sum += entry.getValue() * capped;
         }
 
-        double preCrit = cfg.basePower() + cfg.scaleFactor() * sum;
-        AttackRoll base = rollAttack(attacker, defender, 1.0, 1.0, force);
+        // 3. Base power scaling
+        double baseDamage = cfg.basePower() + cfg.scaleFactor() * sum;
 
-        boolean hit = base.hit();
-        boolean crit = base.crit();
+        // 4. Accuracy roll (unless forced hit)
+        boolean hit = forceCrit || CombatMath.rollHit(attacker, defender, cfg.accuracyBonus());
+
+        // 5. Crit roll (or forced crit)
+        boolean crit = forceCrit || CombatMath.rollCrit(attacker, cfg.critChanceOverride());
+
+        // 6. Final damage calculation (if hit)
         int damage = 0;
         if (hit) {
-            damage = crit
-                    ? (int)(preCrit * attacker.getCritMultiplier())
-                    : (int)preCrit;
+            double varied = CombatMath.applyVariance(baseDamage, cfg.damageVariance());
+            int critMultiplier = DerivedStatCalculator.compute(attacker, DerivedStat.CRIT_MULTIPLIER);
+            damage = (int) (crit ? varied * critMultiplier : varied);
         }
+
         return new AttackRoll(hit, crit, damage);
     }
 
+
+    public static boolean rollHit(ICombatEntity attacker, ICombatEntity defender, int bonusAccuracy) {
+        int accuracy = DerivedStatCalculator.compute(attacker, DerivedStat.ACCURACY) + bonusAccuracy;
+        int evasion = DerivedStatCalculator.compute(defender, DerivedStat.EVASION);
+
+        int hitChance = accuracy - evasion;
+        hitChance = Math.max(5, Math.min(95, hitChance));
+        return RNG.nextInt(100) < hitChance;
+    }
+
     /**
-     * Retrieve the value of a given base stat from an entity.
+     * Rolls whether an attack crits based on attacker crit chance or an override.
      */
-    public static int getStat(ICombatEntity e, Stat stat) {
-        return switch (stat) {
-            case STRENGTH  -> e.getStrength();
-            case AGILITY   -> e.getAgility();
-            case ENDURANCE -> e.getEndurance();
-            case WILLPOWER -> e.getWillpower();
-            case KNOWLEDGE -> e.getKnowledge();
-            case CUNNING   -> e.getCunning();
-        };
+    public static boolean rollCrit(ICombatEntity attacker, Integer overrideCritChance) {
+        int critChance = (overrideCritChance != null)
+                ? overrideCritChance
+                : DerivedStatCalculator.compute(attacker, DerivedStat.CRIT_CHANCE);
+
+        return RNG.nextInt(100) < critChance;
+    }
+
+    /**
+     * Applies variance to raw damage output. The value returned is scaled randomly within ±variance%.
+     */
+    public static double applyVariance(double base, double variancePercent) {
+        double min = base * (1.0 - variancePercent);
+        double max = base * (1.0 + variancePercent);
+        return min + (max - min) * RNG.nextDouble();
     }
 }
+

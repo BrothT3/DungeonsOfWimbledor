@@ -3,6 +3,8 @@ package com.wimbledor.entities;
 
 import com.wimbledor.combat.CombatActions.ICombatAction;
 import com.wimbledor.combat.aiBrains.Decision;
+import com.wimbledor.combat.enums.DerivedStat;
+import com.wimbledor.combat.enums.Stat;
 
 import java.util.List;
 
@@ -12,6 +14,8 @@ import java.util.List;
  * and buff/debuff support.
  */
 public interface ICombatEntity {
+    int getDerived(DerivedStat stat);
+
     /**
      * Unique name for logs/UI
      */
@@ -24,7 +28,6 @@ public interface ICombatEntity {
 
     int getCurrentHp();
 
-    int getMaxHp();
 
     void applyDamage(int amount);
 
@@ -33,21 +36,7 @@ public interface ICombatEntity {
     /**
      * Core combat stats (base + equipment + buffs)
      */
-    int getAttack();
 
-    int getDefense();
-
-    int getDefensePenetration();
-
-    int getAccuracy();
-
-    int getEvasion();
-
-    int getSpeed();
-
-    int getCritChance();
-
-    int getCritMultiplier();
 
     /**
      * All actions available this turn.
@@ -64,12 +53,7 @@ public interface ICombatEntity {
      * Buff/debuff management
      */
 
+    int getStat(Stat s);
 
-    int getStrength();
-    int getAgility();
-    int getEndurance();
-    int getWillpower();
-    int getKnowledge();
-    int getCunning();
 }
 

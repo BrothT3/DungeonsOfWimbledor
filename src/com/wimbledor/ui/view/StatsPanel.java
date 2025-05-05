@@ -1,43 +1,54 @@
 package com.wimbledor.ui.view;
 
+import com.wimbledor.combat.enums.DerivedStat;
+import com.wimbledor.combat.enums.Stat;
+import com.wimbledor.entities.ICombatEntity;
+
 import javax.swing.*;
 import java.awt.*;
 
 /**
- * Displays player HP, numeric/horizontal bar, six base stats, and status icons.
+ * Displays the player's HP and six core stats.
  */
 public class StatsPanel extends JPanel {
-    private final JProgressBar hpBar;
-    private final JLabel       hpLabel;
-    private final JPanel       statsGrid;
+
+    private final JLabel hpLabel = new JLabel("HP: ???");
+    private final JLabel strength = new JLabel();
+    private final JLabel agility = new JLabel();
+    private final JLabel endurance = new JLabel();
+    private final JLabel willpower = new JLabel();
+    private final JLabel knowledge = new JLabel();
+    private final JLabel cunning = new JLabel();
 
     public StatsPanel() {
-        setLayout(new BorderLayout(2,2));
-        hpBar = new JProgressBar(0,100);
-        hpLabel = new JLabel("HP: 0/0");
-        statsGrid = new JPanel(new GridLayout(3,2));
-        // add stat labels: STR, DEX, END, WIL, INT, CUN
-        for (String stat : new String[]{"STR","DEX","END","WIL","INT","CUN"}) {
-            statsGrid.add(new JLabel(stat + ": 0"));
+        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+        setBackground(Color.BLACK);
+        setBorder(BorderFactory.createTitledBorder("Stats"));
+
+        Font statFont = new Font("Monospaced", Font.PLAIN, 12);
+        Color statColor = Color.WHITE;
+
+        for (JLabel label : new JLabel[] {
+                hpLabel, strength, agility, endurance, willpower, knowledge, cunning
+        }) {
+            label.setForeground(statColor);
+            label.setFont(statFont);
+            add(label);
         }
-        add(hpLabel, BorderLayout.NORTH);
-        add(hpBar, BorderLayout.CENTER);
-        add(statsGrid, BorderLayout.SOUTH);
     }
 
-    public void updateHp(int current, int max) {
-        hpBar.setMaximum(max);
-        hpBar.setValue(current);
-        hpLabel.setText("HP: " + current + "/" + max);
-    }
+    /**
+     * Updates stat values from the current player.
+     */
+    public void setStats(ICombatEntity player) {
+        // You can swap out "???" for player.getCurrentHP() / getMaxHP() if those exist
+        hpLabel.setText("HP: " + player.getCurrentHp() + "/" + player.getDerived(DerivedStat.MAX_HP));
 
-    public void updateStats(int str,int dex,int end,int wil,int intel,int cun) {
-        Component[] comps = statsGrid.getComponents();
-        ((JLabel)comps[0]).setText("STR: " + str);
-        ((JLabel)comps[1]).setText("DEX: " + dex);
-        ((JLabel)comps[2]).setText("END: " + end);
-        ((JLabel)comps[3]).setText("WIL: " + wil);
-        ((JLabel)comps[4]).setText("INT: " + intel);
-        ((JLabel)comps[5]).setText("CUN: " + cun);
+        strength.setText("STR: " + player.getStat(Stat.STRENGTH));
+        agility.setText("AGI: " + player.getStat(Stat.AGILITY));
+        endurance.setText("END: " + player.getStat(Stat.ENDURANCE));
+        willpower.setText("WIL: " + player.getStat(Stat.WILLPOWER));
+        knowledge.setText("KNO: " + player.getStat(Stat.KNOWLEDGE));
+        cunning.setText("CUN: " + player.getStat(Stat.CUNNING));
     }
 }

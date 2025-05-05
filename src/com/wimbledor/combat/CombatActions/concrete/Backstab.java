@@ -9,33 +9,45 @@ import com.wimbledor.entities.ICombatEntity;
 
 import java.util.Map;
 
-
 public class Backstab extends StatScalingAttack {
     private static final SkillConfig CONFIG = new SkillConfig(
-            /* basePower   */ 30,             // light starting damage
-            /* statWeights */ Map.of(
-            Stat.CUNNING, 0.85,            // primary
-            Stat.AGILITY, 0.60             // secondary
+            /* basePower          */ 1,
+            /* statWeights        */ Map.of(
+            Stat.CUNNING, 0.85,
+            Stat.AGILITY, 0.60
     ),
-            /* maxLevel     */ 4,             // tiers 1–4
-            /* thetaBase    */ 40,            // low‐tier softcap
-            /* deltaTheta   */ 160,           // extra cap by max tier
-            /* softnessExp  */ 2,             // softcap curve
-            /* scaleFactor  */ 1.4            // how strongly stats convert to damage
+            /* maxLevel           */ 4,
+            /* thetaBase          */ 40,
+            /* deltaTheta         */ 160,
+            /* softnessExp        */ 2,
+            /* scaleFactor        */ 1.4,
+
+            // New fields:
+            /* damageVariance     */ 0.25,      // Slightly more volatile
+            /* accuracyBonus      */ -35,        // More likely to hit from stealth
+            /* critChanceOverride */ null       // Use default crit chance (but forced in logic)
     );
 
     public Backstab() {
-        // tier-2 stealth skill, forceCrit=true for guaranteed crit on hit
-        super(CONFIG, /*skillLevel*/2, /*forceCrit*/true);
+        // tier-2 stealth skill, forceCrit = true for guaranteed crit on hit
+        super(CONFIG, /* skillLevel */ 2, /* forceCrit */ true);
     }
 
-    @Override public String getName() {
+    @Override
+    public String getName() {
         return "Backstab";
     }
 
-    @Override public TargetMode getTargetMode() {
+    @Override
+    public TargetMode getTargetMode() {
         return TargetMode.SINGLE_ENEMY;
     }
+
+    @Override
+    public String getDescription() {
+        return "Getting close enough to deftly thrust a blade between the ribs is much too difficult in a real fight. If you're seen, that is.";
+    }
+
     @Override
     public String getLogMessage(
             ICombatEntity actor,
@@ -46,10 +58,10 @@ public class Backstab extends StatScalingAttack {
     ) {
         if (!hit) {
             return actor.getName() + " tried to fade from view, but " +
-                    target.getName() + " saw the " + actor.getName()+"!";
+                    target.getName() + " saw them!";
         }
         return actor.getName() + " saw an opportunity and struck " +
-                target.getName() + ", backstabbing them for " + (-amount) +
+                target.getName() + ", backstabbing them for " + (amount) +
                 " damage" + (crit ? " (CRITICAL!)" : "");
     }
 }

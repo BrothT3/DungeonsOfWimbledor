@@ -26,13 +26,10 @@ public class CombatExecutor {
 
         List<AttackResult> results = new ArrayList<>();
         for (ICombatEntity target : targets) {
+            if (!(action instanceof StatScalingAttack ssa))
+                throw new UnsupportedOperationException("Unsupported action type: " + action.getClass());
             // 1) Compute the roll
-            CombatMath.AttackRoll roll;
-            if (action instanceof StatScalingAttack ssa) {
-                roll = CombatMath.rollScaledAttack(ssa, actor, target);
-            } else {
-                roll = CombatMath.rollAttack(actor, target, 1.0, 1.0, false);
-            }
+            CombatMath.AttackRoll roll = CombatMath.rollScaledAttack(ssa, actor, target);
 
             // 2) Apply damage (if any)
             if (roll.hit() && roll.damage() > 0) {

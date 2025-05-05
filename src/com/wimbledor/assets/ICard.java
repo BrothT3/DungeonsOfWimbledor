@@ -15,5 +15,5 @@ public interface ICard {
      * @param code the unique code of the chosen option
      * @return the “next” card to display (null if deck should draw)
      */
-    ICard onOptionSelected(String code);
+
 }

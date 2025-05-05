@@ -26,7 +26,7 @@ public class LogPanel extends JPanel {
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
         );
-        scroll.setBorder(null);
+        setBorder(BorderFactory.createTitledBorder("Combat Log"));
         scroll.getViewport().setBackground(Color.BLACK);
 
         add(scroll, BorderLayout.CENTER);

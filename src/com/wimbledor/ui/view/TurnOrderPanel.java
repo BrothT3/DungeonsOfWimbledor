@@ -7,27 +7,30 @@ import java.awt.*;
 import java.util.List;
 
 /**
- * A horizontal strip showing the upcoming turn order as small icons or names.
+ * Displays the turn order as a horizontal strip of combat entities.
  */
 public class TurnOrderPanel extends JPanel {
+
     public TurnOrderPanel() {
-        setLayout(new FlowLayout(FlowLayout.LEFT, 4, 4));
+        setLayout(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        setPreferredSize(new Dimension(800, 60));
         setBackground(Color.BLACK);
+        setBorder(BorderFactory.createTitledBorder("Turn Order"));
     }
 
     /**
-     * Rebuilds the strip to display the given actors in order.
+     * Updates the panel with a new list of combat actors in turn order.
      */
     public void setActors(List<ICombatEntity> actors) {
-        removeAll();
-        for (ICombatEntity e : actors) {
-            // Placeholder: show the entity's name in a fixed 32×32 cell
-            JLabel lbl = new JLabel(e.getName(), SwingConstants.CENTER);
-            lbl.setForeground(Color.WHITE);
-            lbl.setPreferredSize(new Dimension(32, 32));
-            lbl.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 1));
-            add(lbl);
+        removeAll();  // Clear old labels
+
+        for (ICombatEntity entity : actors) {
+            JLabel label = new JLabel(entity.getName());  // You can customize this method
+            label.setForeground(Color.YELLOW);  // Color-code if needed (e.g., team-based)
+            label.setFont(new Font("Monospaced", Font.BOLD, 14));
+            add(label);
         }
+
         revalidate();
         repaint();
     }

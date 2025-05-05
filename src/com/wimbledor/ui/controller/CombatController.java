@@ -1,14 +1,15 @@
-// src/com/wimbledor/ui/controller/CombatController.java
 package com.wimbledor.ui.controller;
 
-import com.wimbledor.combat.AttackResult;
+import com.wimbledor.assets.ICard;
+import com.wimbledor.combat.*;
 import com.wimbledor.combat.CombatActions.ICombatAction;
-import com.wimbledor.combat.CombatLoop;
-import com.wimbledor.combat.TurnResult;
 import com.wimbledor.combat.TurnBasedSystem.BattleEngine;
 import com.wimbledor.entities.ICombatEntity;
+import com.wimbledor.entities.Player;
 import com.wimbledor.assets.encounters.EncounterStage;
 import com.wimbledor.ui.view.CombatPanel;
+import com.wimbledor.ui.view.PlayerInfoPanel;
+import com.wimbledor.engine.GameContext;
 
 import java.util.List;
 
@@ -18,96 +19,101 @@ import java.util.List;
  */
 public class CombatController implements CombatLoop.Listener {
     private final CombatPanel panel;
+    private final PlayerInfoPanel playerInfoPanel;
     private final BattleEngine engine;
     private final CombatLoop loop;
     private final Runnable onBattleOver;
+    private boolean playerTurn = false;
 
-    /** If set, the narrative stage to show immediately after this fight. */
-    private EncounterStage pendingAfterStage;
+    private ICard pendingAfterStage;
 
     public CombatController(BattleEngine engine,
                             CombatPanel panel,
+                            PlayerInfoPanel playerInfoPanel,
                             Runnable onBattleOver) {
-        this.engine        = engine;
-        this.panel         = panel;
-        this.loop          = new CombatLoop(engine, this);
-        this.onBattleOver  = onBattleOver;
+        this.engine = engine;
+        this.panel = panel;
+        this.playerInfoPanel = playerInfoPanel;
+        this.loop = new CombatLoop(engine, this);
+        this.onBattleOver = onBattleOver;
 
         panel.setActionClickListener(this::onPlayerAction);
     }
 
-    /** Kicks off the loop when a battle begins. */
     public void start() {
         pendingAfterStage = null;
         panel.clearLog();
+        playerTurn = false;
         loop.start();
+        playerInfoPanel.setPlayer(GameContext.getPlayer());
     }
 
-    /** Allows NarrativeController to prime the aftermath stage. */
-    public void setPendingAfterStage(EncounterStage stage) {
+    public void setPendingAfterStage(ICard stage) {
         this.pendingAfterStage = stage;
     }
 
-    /** Bound to UI combat-action buttons. */
     private void onPlayerAction(ICombatAction action) {
+        if (!playerTurn) return;
+
         List<ICombatEntity> targets = panel.getSelectedEnemies();
-        // Execute immediately, then reflect it in our listener
         TurnResult result = engine.playerAct(action, targets);
+        loop.primeNextTurn(result);
+        playerTurn = false; // Assume it's no longer player's turn until confirmed again
+
+
         onTurnResult(result);
-        // now the loop thread will continue with any AI turns
+        playerInfoPanel.setPlayer(GameContext.getPlayer());
     }
 
-    /** Called by CombatLoop on every PLAYER_TURN, AI_TURN, or BATTLE_OVER. */
     @Override
     public void onTurnResult(TurnResult result) {
-        // clear any click highlight from last turn
         panel.clearSelection();
 
         switch (result.getType()) {
             case PLAYER_TURN -> {
+                playerTurn = true;
+
                 panel.updateTurnOrder(result.getActors());
                 panel.updateEnemies(result.getEnemies());
                 panel.updateActions(result.getPlayerActions());
 
-                // log the player’s hits
                 if (result.getPlayerResults() != null) {
                     for (AttackResult ar : result.getPlayerResults()) {
-                        panel.appendLog(ar.action()
-                                .getLogMessage(
-                                        ar.actor(),
-                                        ar.target(),
-                                        ar.hit(),
-                                        ar.crit(),
-                                        ar.damage()
-                                ) + "\n"
-                        );
+                        panel.appendLog(ar.action().getLogMessage(
+                                ar.actor(), ar.target(), ar.hit(), ar.crit(), ar.damage()
+                        ) + "\n");
                     }
                 }
+
+                playerInfoPanel.setPlayer(GameContext.getPlayer());
             }
 
             case AI_TURN -> {
+                playerTurn = false;
+//                System.out.println("Rendering enemies:");
+//                for (ICombatEntity e : result.getEnemies()) {
+//                    System.out.println("- " + e.getName() + " (" + e.getTeam() + ")");
+//                }
+                System.out.println("=== UI ENEMY PANEL: getEnemies() ===");
+                for (var e : result.getEnemies()) {
+                    System.out.println(" - " + e.getName() + " (" + e.getTeam() + ")");
+                }
                 panel.updateEnemies(result.getEnemies());
                 panel.updateTurnOrder(result.getActors());
 
-                // log each AI hit
                 for (AttackResult ar : result.getAiResults()) {
-                    panel.appendLog(ar.action()
-                            .getLogMessage(
-                                    ar.actor(),
-                                    ar.target(),
-                                    ar.hit(),
-                                    ar.crit(),
-                                    ar.damage()
-                            ) + "\n"
-                    );
+                    panel.appendLog(ar.action().getLogMessage(
+                            ar.actor(), ar.target(), ar.hit(), ar.crit(), ar.damage()
+                    ) + "\n");
                 }
+
+                playerInfoPanel.setPlayer(GameContext.getPlayer());
             }
 
             case BATTLE_OVER -> {
+                playerTurn = false;
                 panel.appendLog("\n-- Battle Over --\n");
                 loop.stop();
-
-                // hand back to narrative; any pendingAfterStage was set earlier
                 onBattleOver.run();
             }
         }

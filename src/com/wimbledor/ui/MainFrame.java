@@ -1,15 +1,15 @@
-// src/com/wimbledor/ui/MainFrame.java
 package com.wimbledor.ui;
 
+import com.wimbledor.ui.view.CombatPanel;
 import com.wimbledor.ui.view.NarrativePanel;
-import com.wimbledor.ui.view.*;
+import com.wimbledor.ui.view.PlayerInfoPanel;
 
 import javax.swing.*;
 import java.awt.*;
 
 /**
  * The main application window. Left pane swaps between CombatPanel and NarrativePanel.
- * Right pane shows persistent player info: stats, equipment, consumables, inventory, gold.
+ * Right pane shows persistent player info via PlayerInfoPanel.
  */
 public class MainFrame extends JFrame {
     private final CardLayout leftLayout;
@@ -17,12 +17,7 @@ public class MainFrame extends JFrame {
     private final CombatPanel combatPanel;
     private final NarrativePanel narrativePanel;
 
-    private final JPanel rightContainer;
-    private final StatsPanel statsPanel;
-    private final EquipmentPanel equipmentPanel;
-    private final ConsumablesPanel consumablesPanel;
-    private final InventoryButton inventoryButton;
-    private final GoldPanel goldPanel;
+    private final PlayerInfoPanel playerInfoPanel;
 
     public MainFrame() {
         super("Dungeons of WimbleDor");
@@ -38,24 +33,9 @@ public class MainFrame extends JFrame {
         leftContainer.add(narrativePanel, "NARRATIVE");
         add(leftContainer, BorderLayout.CENTER);
 
-        // Right: vertical stack
-        rightContainer = new JPanel();
-        rightContainer.setLayout(new BoxLayout(rightContainer, BoxLayout.Y_AXIS));
-        statsPanel = new StatsPanel();
-        equipmentPanel = new EquipmentPanel();
-        consumablesPanel = new ConsumablesPanel();
-        inventoryButton = new InventoryButton();
-        goldPanel = new GoldPanel();
-        rightContainer.add(statsPanel);
-        rightContainer.add(Box.createVerticalStrut(8));
-        rightContainer.add(equipmentPanel);
-        rightContainer.add(Box.createVerticalStrut(8));
-        rightContainer.add(consumablesPanel);
-        rightContainer.add(Box.createVerticalStrut(8));
-        rightContainer.add(inventoryButton);
-        rightContainer.add(Box.createVerticalStrut(8));
-        rightContainer.add(goldPanel);
-        add(new JScrollPane(rightContainer), BorderLayout.EAST);
+        // Right: PlayerInfoPanel encapsulates all persistent player UI
+        playerInfoPanel = new PlayerInfoPanel();
+        add(new JScrollPane(playerInfoPanel), BorderLayout.EAST);
 
         pack();
         setLocationRelativeTo(null);
@@ -72,26 +52,16 @@ public class MainFrame extends JFrame {
         leftLayout.show(leftContainer, "NARRATIVE");
     }
 
-    // Getters for panels so controllers can update them:
+    // Getters for main sub-panels
     public CombatPanel getCombatPanel() {
         return combatPanel;
     }
+
     public NarrativePanel getNarrativePanel() {
         return narrativePanel;
     }
-    public StatsPanel getStatsPanel() {
-        return statsPanel;
-    }
-    public EquipmentPanel getEquipmentPanel() {
-        return equipmentPanel;
-    }
-    public ConsumablesPanel getConsumablesPanel() {
-        return consumablesPanel;
-    }
-    public InventoryButton getInventoryButton() {
-        return inventoryButton;
-    }
-    public GoldPanel getGoldPanel() {
-        return goldPanel;
+
+    public PlayerInfoPanel getPlayerInfoPanel() {
+        return playerInfoPanel;
     }
 }

@@ -1,3 +1,4 @@
+// src/com/wimbledor/combat/CombatActions/SkillConfig.java
 package com.wimbledor.combat.CombatActions;
 
 import com.wimbledor.combat.enums.Stat;
@@ -11,5 +12,8 @@ public record SkillConfig(
         double thetaBase,
         double deltaTheta,
         double softnessExp,
-        double scaleFactor
+        double scaleFactor,
+        double damageVariance,
+        int accuracyBonus,
+        Integer critChanceOverride  // nullable
 ) {}

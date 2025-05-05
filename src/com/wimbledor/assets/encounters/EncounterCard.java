@@ -36,46 +36,31 @@ public class EncounterCard implements ICard {
     public List<CardOption> getOptions() {
         return current.getOptions().stream()
                 .map(so -> {
-                    // 1) Build the effect callback exactly as before
+                    // 1) Build the effect consumer — applies only the effect
                     var effect = (java.util.function.Consumer<com.wimbledor.entities.Player>) player -> {
                         so.apply(player);
-                        BattleCard battle = so.getNextBattle();
-                        if (battle != null) {
-                            GameContext.startBattleWith(player, battle);
-                            return;
-                        }
-                        if (so.getNextStage() != null) {
-                            this.current = so.getNextStage();
-                            return;
-                        }
                     };
 
-                    // 2) HERE’S THE KEY CHANGE:
-                    //    wrap the *next* stage in a brand-new EncounterCard,
-                    //    even if there's a battle attached.
-                    ICard nextCard = so.getNextStage() != null
-                            ? new EncounterCard(title, so.getNextStage())
-                            : null;
+                    // 2) Build the next card to transition to
+                    ICard nextCard;
+                    if (so.getNextBattle() != null) {
+                        nextCard = so.getNextBattle();
+                    } else if (so.getNextStage() != null) {
+                        nextCard = new EncounterCard(title, so.getNextStage());
+                    } else {
+                        nextCard = null;
+                    }
 
+                    // 3) Return full CardOption with effectDescription support
                     return new CardOption(
                             so.getCode(),
                             so.getLabel(),
                             effect,
-                            nextCard        // now correctly points at the aftermath card
+                            nextCard,
+                            so.getEffectDescription()
                     );
                 })
                 .collect(Collectors.toList());
     }
 
-    @Override
-    public ICard onOptionSelected(String code) {
-        for (StageOption so : current.getOptions()) {
-            if (!so.getCode().equals(code)) continue;
-            so.apply(GameContext.getPlayer());
-            if (so.getNextBattle() != null)    return so.getNextBattle();
-            if (so.getNextStage() != null)     return new EncounterCard(title, so.getNextStage());
-            return null;
-        }
-        return null;
-    }
 }

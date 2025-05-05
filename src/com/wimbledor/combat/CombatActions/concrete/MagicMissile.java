@@ -12,17 +12,23 @@ import com.wimbledor.entities.ICombatEntity;
 import java.util.Map;
 
 public class MagicMissile extends StatScalingAttack {
+
     private static final SkillConfig CONFIG = new SkillConfig(
-            /* basePower   */ 40,                // flat starting damage
+            /* basePower   */ 4,
             /* statWeights */ Map.of(
-            Stat.KNOWLEDGE, 1.0,            // primary
-            Stat.WILLPOWER, 0.5             // secondary
+            Stat.KNOWLEDGE, 1.0,
+            Stat.WILLPOWER, 0.5
     ),
-            /* maxLevel     */ 3,                // tiers 1–3
-            /* thetaBase    */ 30,               // low‐tier softcap
-            /* deltaTheta   */ 120,              // extra cap by max tier
-            /* softnessExp  */ 2,                // softcap curve
-            /* scaleFactor  */ 1.3               // how strongly stats convert to damage
+            /* maxLevel     */ 3,
+            /* thetaBase    */ 30,
+            /* deltaTheta   */ 120,
+            /* softnessExp  */ 2,
+            /* scaleFactor  */ 1.3,
+
+            // NEW FIELDS
+            /* damageVariance */ 0.15,         // +/- 15% variance
+            /* accuracyBonus  */ 10,           // +10 accuracy
+            /* critChanceOverride */ null      // fixed 10% crit chance
     );
 
     public MagicMissile() {
@@ -38,9 +44,15 @@ public class MagicMissile extends StatScalingAttack {
         return TargetMode.SINGLE_ENEMY;
     }
 
+    @Override
+    public String getDescription() {
+        return "a small, condensed chunk of unruly mana can make for quite the pebble to throw";
+    }
+
     public static void log(String msg) {
         GameContext.log(msg);
     }
+
     @Override
     public String getLogMessage(
             ICombatEntity actor,
@@ -53,8 +65,8 @@ public class MagicMissile extends StatScalingAttack {
             return actor.getName() + " attempted to cast something " +
                     target.getName() + " but the spell fizzled " + actor.getName()+"!";
         }
-        return actor.getName() + " condenses a small amount of mana into a maggic missile and shoots it at " +
-                target.getName() + ", dealing" + (-amount) +
+        return actor.getName() + " launches a crackling missile at " +
+                target.getName() + ", dealing" + (amount) +
                 " damage" + (crit ? " (CRITICAL!)" : "");
     }
 }

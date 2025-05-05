@@ -1,9 +1,9 @@
-// src/com/wimbledor/combat/TurnQueue.java
+// src/com/wimbledor/combat/TurnBasedSystem/TurnQueue.java
 package com.wimbledor.combat.TurnBasedSystem;
 
 import com.wimbledor.entities.ICombatEntity;
 import com.wimbledor.entities.Team;
-
+import com.wimbledor.combat.enums.DerivedStat;
 import java.util.*;
 
 /**
@@ -29,7 +29,7 @@ public class TurnQueue {
         queue.clear();
         allEntities.stream()
                 .filter(ICombatEntity::isAlive)
-                .sorted(Comparator.comparingInt(ICombatEntity::getSpeed).reversed())
+                .sorted(Comparator.comparingInt(e -> -e.getDerived(DerivedStat.SPEED)))
                 .forEach(queue::addLast);
     }
 
@@ -46,8 +46,12 @@ public class TurnQueue {
         }
         return actor;
     }
+
     public List<ICombatEntity> getTurnOrder() {
-        return new ArrayList<>(queue);  // copies the current deque
+        return allEntities.stream()
+                .filter(ICombatEntity::isAlive)
+                .sorted(Comparator.comparingInt(e -> -e.getDerived(DerivedStat.SPEED)))
+                .toList();
     }
 
     /**
@@ -74,7 +78,10 @@ public class TurnQueue {
                 .anyMatch(ICombatEntity::isAlive);
         return !(anyPlayer && anyEnemy);
     }
-
+    public ICombatEntity peekNext() {
+        if (queue.isEmpty()) refillQueue();
+        return queue.peekFirst();
+    }
     /**
      * List all living enemies of the given team.
      */

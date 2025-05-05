@@ -10,6 +10,7 @@ import java.util.List;
  * A row of buttons representing the player's available combat actions.
  */
 public class ActionListPanel extends JPanel {
+
     public interface ActionClickListener {
         void onActionClicked(ICombatAction action);
     }
@@ -26,13 +27,23 @@ public class ActionListPanel extends JPanel {
      */
     public void setActions(List<ICombatAction> actionsList) {
         removeAll();
+
+        if (actionsList == null) return;
+
         for (ICombatAction act : actionsList) {
             JButton btn = new JButton(act.getName());
+            btn.setBackground(Color.DARK_GRAY);
+            btn.setForeground(Color.YELLOW);
+            btn.setFont(new Font("Monospaced", Font.BOLD, 12));
+            btn.setToolTipText(act.getDescription()); // optional detail
+
             btn.addActionListener(e -> {
                 if (listener != null) listener.onActionClicked(act);
             });
+
             add(btn);
         }
+
         revalidate();
         repaint();
     }

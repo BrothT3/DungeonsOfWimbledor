@@ -59,5 +59,5 @@ public abstract class Consumable implements ICombatAction {
     /**
      * Description for tooltips or inventory screens
      */
-    public abstract String getDescription();
+
 }

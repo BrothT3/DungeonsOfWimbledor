@@ -40,14 +40,4 @@ public abstract class AbstractCard implements ICard {
         options.add(option);
     }
 
-    @Override
-    public ICard onOptionSelected(String code) {
-        for (CardOption opt : options) {
-            if (opt.getCode().equals(code)) {
-                opt.applyEffect(GameContext.getPlayer());
-                return opt.getNextCard();
-            }
-        }
-        throw new IllegalArgumentException("Invalid option code: " + code);
-    }
 }

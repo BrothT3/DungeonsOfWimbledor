@@ -1,8 +1,11 @@
 // src/com/wimbledor/cards/MonsterCards/GoblinCard.java
 package com.wimbledor.assets.monsters;
 
+import com.wimbledor.combat.BaseStats;
 import com.wimbledor.combat.CombatActions.concrete.Backstab;
 import com.wimbledor.combat.CombatActions.concrete.Slash;
+import com.wimbledor.combat.enums.DerivedStat;
+import com.wimbledor.combat.enums.Stat;
 import com.wimbledor.entities.BaseNPC;
 import com.wimbledor.entities.Team;
 
@@ -13,17 +16,9 @@ public class GoblinCard extends BaseNPC {
         super(
                 "Goblin",
                 Team.ENEMY,
-                /* maxHp */             15,
-                /* attack */             4,
-                /* defense */            2,
-                /* penetration */        1,
-                /* accuracy */          75,
-                /* evasion */           10,
-                /* speed */              8,
-                /* critChance */         15,
-                /* critMultiplier */     2,
-                /* goldReward */         3,
-                /* expReward */          5,
+                /* Strength */             new BaseStats(6, 12, 7, 4, 4, 12),
+                /* Goldreward */          5,
+                /* expreward*/           10,
                 List.of(new Slash(1), new Backstab())
         );
     }
@@ -39,32 +34,7 @@ public class GoblinCard extends BaseNPC {
     }
 
     @Override
-    public int getStrength() {
-        return 0;
-    }
-
-    @Override
-    public int getAgility() {
-        return 0;
-    }
-
-    @Override
-    public int getEndurance() {
-        return 0;
-    }
-
-    @Override
-    public int getWillpower() {
-        return 0;
-    }
-
-    @Override
-    public int getKnowledge() {
-        return 0;
-    }
-
-    @Override
-    public int getCunning() {
-        return 0;
+    public Team getTeam() {
+        return Team.ENEMY;
     }
 }

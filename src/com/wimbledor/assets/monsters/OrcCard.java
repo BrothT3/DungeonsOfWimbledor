@@ -1,6 +1,7 @@
 // src/com/wimbledor/cards/MonsterCards/OrcCard.java
 package com.wimbledor.assets.monsters;
 
+import com.wimbledor.combat.BaseStats;
 import com.wimbledor.combat.CombatActions.concrete.Slash;
 import com.wimbledor.entities.BaseNPC;
 import com.wimbledor.entities.Team;
@@ -8,24 +9,19 @@ import com.wimbledor.entities.Team;
 import java.util.List;
 
 public class OrcCard extends BaseNPC {
-    public OrcCard() {
-        super(
-                "Orc",
-                Team.ENEMY,
-                /* maxHp */            20,
-                /* attack */            8,
-                /* defense */           5,
-                /* penetration */       1,
-                /* accuracy */         80,
-                /* evasion */           7,
-                /* speed */             6,
-                /* critChance */        7,
-                /* critMultiplier */    2,
-                /* goldReward */        5,
-                /* expReward */         8,
-                List.of(new Slash(1))
-        );
-    }
+
+
+        public OrcCard() {
+            super(
+                    "Orc",
+                    Team.ENEMY,
+                    new BaseStats(14, 10, 12, 12, 6, 8),
+                    10,
+                    14,
+                    List.of(new Slash(1))
+            );
+        }
+
 
     @Override
     public String getRevealText() {
@@ -37,33 +33,5 @@ public class OrcCard extends BaseNPC {
         return "Orcs are brutal fighters—watch their war cries.";
     }
 
-    @Override
-    public int getStrength() {
-        return 0;
-    }
 
-    @Override
-    public int getAgility() {
-        return 0;
-    }
-
-    @Override
-    public int getEndurance() {
-        return 0;
-    }
-
-    @Override
-    public int getWillpower() {
-        return 0;
-    }
-
-    @Override
-    public int getKnowledge() {
-        return 0;
-    }
-
-    @Override
-    public int getCunning() {
-        return 0;
-    }
 }

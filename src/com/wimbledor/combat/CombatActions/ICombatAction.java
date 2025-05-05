@@ -35,6 +35,7 @@ public interface ICombatAction {
     default void modifyStats(ICombatEntity actor, List<ICombatEntity> targets) {
         // no-op
     }
+     String getDescription();
     /**
      * Build a log‐friendly description of what happened.
      *

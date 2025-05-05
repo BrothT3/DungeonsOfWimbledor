@@ -5,18 +5,22 @@ import com.wimbledor.entities.Player;
 import java.util.function.Consumer;
 
 public class CardOption {
-    private final String code;            // unique identifier
-    private final String label;           // what to show on button
-    private final Consumer<Player> effect;// immediate effect on player
-    private final ICard nextCard;         // next card in a sequence (nullable)
+    private final String code;                  // unique identifier (e.g. "A", "B")
+    private final String label;                 // button label (e.g. "Drink the water")
+    private final Consumer<Player> effect;      // effect to apply on click
+    private final ICard nextCard;               // next EncounterCard or BattleCard
+    private final String effectDescription;     // optional UI text (cyan log, tooltip)
 
-    public CardOption(String code, String label,
+    public CardOption(String code,
+                      String label,
                       Consumer<Player> effect,
-                      ICard nextCard) {
+                      ICard nextCard,
+                      String effectDescription) {
         this.code = code;
         this.label = label;
         this.effect = effect;
         this.nextCard = nextCard;
+        this.effectDescription = effectDescription;
     }
 
     public String getCode() {
@@ -27,13 +31,18 @@ public class CardOption {
         return label;
     }
 
+    public Consumer<Player> getEffect() {
+        return effect;
+    }
+
     public ICard getNextCard() {
         return nextCard;
     }
 
-    /**
-     * Apply any immediate player-side effect.
-     */
+    public String getEffectDescription() {
+        return effectDescription;
+    }
+
     public void applyEffect(Player player) {
         if (effect != null) effect.accept(player);
     }

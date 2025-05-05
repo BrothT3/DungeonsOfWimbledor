@@ -1,17 +1,17 @@
-// src/com/wimbledor/ui/controller/NarrativeController.java
 package com.wimbledor.ui.controller;
 
 import com.wimbledor.assets.BattleCard;
+import com.wimbledor.assets.CardOption;
+import com.wimbledor.assets.ICard;
 import com.wimbledor.assets.encounters.EncounterCard;
-import com.wimbledor.assets.encounters.EncounterStage;
-import com.wimbledor.assets.encounters.StageOption;
 import com.wimbledor.engine.EncounterDeck;
 import com.wimbledor.entities.Player;
 import com.wimbledor.ui.view.NarrativePanel;
+import com.wimbledor.ui.view.PlayerInfoPanel;
 
+import javax.swing.*;
 import java.util.List;
 import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
 
 /**
  * Drives narrative only: pulls EncounterCard from deck,
@@ -22,13 +22,8 @@ public class NarrativeController {
     private final EncounterDeck deck;
     private final NarrativePanel panel;
     private final Player player;
-    /**
-     * Callback: when a battle should start, along with its aftermath stage
-     */
-    private BiConsumer<BattleCard, EncounterStage> onBattleStart;
-    /**
-     * Callback: when the narrative deck is exhausted
-     */
+    private final PlayerInfoPanel playerInfoPanel;
+    private BiConsumer<BattleCard, ICard> onBattleStart;
     private final Runnable onNarrativeComplete;
 
     private EncounterCard current;
@@ -37,95 +32,90 @@ public class NarrativeController {
             EncounterDeck deck,
             NarrativePanel panel,
             Player player,
+            PlayerInfoPanel playerInfoPanel,
             Runnable onNarrativeComplete
     ) {
         this.deck = deck;
         this.panel = panel;
         this.player = player;
+        this.playerInfoPanel = playerInfoPanel;
         this.onNarrativeComplete = onNarrativeComplete;
 
         panel.setOptionClickListener(this::onOptionSelected);
     }
-    public void setOnBattleStart(BiConsumer<BattleCard, EncounterStage> cb) {
+
+    public void setOnBattleStart(BiConsumer<BattleCard, ICard> cb) {
         this.onBattleStart = cb;
     }
-    /** Kick off the first narrative card. */
+
     public void start() {
         drawNextCard();
     }
 
-    /** Called by GameController to resume after a battle. */
     public void resumeAfterBattle() {
         if (current != null) {
             panel.showStage(
                     current.getTitle(),
-                    current.getCurrentStage().getDescription(),
-                    buildLabels(current.getCurrentStage())
+                    current.getDescription(),
+                    current.getOptions()
             );
         } else {
             drawNextCard();
         }
     }
 
-    /** Draws and shows the next EncounterCard from the deck. */
     private void drawNextCard() {
-        var card = deck.draw();
+        ICard card = deck.draw();
         if (card == null) {
             onNarrativeComplete.run();
             return;
         }
         if (card instanceof EncounterCard ec) {
-            this.current = ec;
+            current = ec;
             showStage(ec);
         } else {
-            // skip non-narrative cards
-            drawNextCard();
+            drawNextCard(); // skip non-narrative
         }
     }
 
-    /** Displays the given encounter's current stage. */
     private void showStage(EncounterCard ec) {
-        EncounterStage stage = ec.getCurrentStage();
         panel.showStage(
                 ec.getTitle(),
-                stage.getDescription(),
-                buildLabels(stage)
+                ec.getDescription(),
+                ec.getOptions()
         );
     }
 
-    private List<String> buildLabels(EncounterStage stage) {
-        return stage.getOptions().stream()
-                .map(so -> so.getCode() + ". " + so.getLabel())
-                .collect(Collectors.toList());
-    }
-
-    /** Handles option clicks or key presses. */
     private void onOptionSelected(String code) {
-        var stage = current.getCurrentStage();
-        for (StageOption so : stage.getOptions()) {
-            if (!so.getCode().equals(code)) continue;
-            // 1) apply effect
-            so.apply(player);
-            // 2) battle or next stage
-            BattleCard battle = so.getNextBattle();
-            EncounterStage next = so.getNextStage();
-            if (battle != null) {
-                onBattleStart.accept(battle, next);
-            } else if (next != null) {
-                current = new EncounterCard(current.getTitle(), next);
-                panel.showStage(
-                        current.getTitle(),
-                        next.getDescription(),
-                        buildLabels(next)
-                );
+        var options = current.getOptions();
+        for (CardOption opt : options) {
+            if (!opt.getCode().equals(code)) continue;
+
+            // 1. Apply effect
+            opt.getEffect().accept(player);
+
+            // 2. Transition to next card
+            ICard next = opt.getNextCard();
+            if (next instanceof EncounterCard ec) {
+                current = ec;
+                showStage(ec);
+            } else if (next instanceof BattleCard bc) {
+                onBattleStart.accept(bc, null);
             } else {
                 drawNextCard();
             }
-            // 3) if reward or status change, show info
-            if (so.getEffectDescription() != null) {
-                panel.appendInfo(so.getEffectDescription());
+
+            // 3. Append effect description AFTER stage change
+            if (opt.getEffectDescription() != null) {
+                panel.appendInfo(opt.getEffectDescription());
             }
+
+            // 4. Refresh player info AFTER changes
+            playerInfoPanel.setPlayer(player);
             return;
         }
     }
-}
+    }
+
+
+
