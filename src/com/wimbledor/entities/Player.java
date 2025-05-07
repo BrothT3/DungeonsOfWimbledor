@@ -31,7 +31,7 @@ public class Player implements ICombatEntity {
     private final int level;
     private int experience;
     private int gold;
-
+    private final Team team;
     private final List<Consumable> consumables = new ArrayList<>();
 
     private final EquipmentManager equipMgr = EquipmentManager.getInstance();
@@ -44,6 +44,7 @@ public class Player implements ICombatEntity {
         this.gold = 0;
         this.baseStats = new BaseStats(10, 10, 100, 10, 10, 10);
         this.currentHp = getDerived(DerivedStat.MAX_HP);
+        team = Team.PLAYER;
     }
 
     // === Actions ===

@@ -1,5 +1,4 @@
 // src/com/wimbledor/ui/controller/GameController.java
-
 package com.wimbledor.ui.controller;
 
 import com.wimbledor.assets.BattleCard;
@@ -21,54 +20,51 @@ import javax.swing.*;
 import java.util.List;
 
 /**
- * Top-level orchestrator. Boots the UI, spawns narrative & combat controllers,
- * and swaps the left panes between narrative and combat mode.
+ * Top-level: boots the game, swaps between narrative & combat.
  */
 public class GameController {
-    private final MainFrame mainFrame;
+    private final MainFrame          mainFrame;
     private final NarrativeController narrativeController;
 
     public GameController(Player player) {
-        // 1) Set up global game context
+        // 1) Global context
         GameContext.setPlayer(player);
         EquipmentManager.getInstance().equipWeapon(new FierceAxe());
 
-        // 2) Build UI and extract panels
-        mainFrame = new MainFrame();
+        // 2) Build UI
+        mainFrame      = new MainFrame();
         CombatPanel combatPanel       = mainFrame.getCombatPanel();
         NarrativePanel narrativePanel = mainFrame.getNarrativePanel();
         PlayerInfoPanel playerInfo    = mainFrame.getPlayerInfoPanel();
         playerInfo.setPlayer(player);
 
-        // 3) Set global logger
+        // 3) Global logger to combat log
         GameContext.setLogger(combatPanel::appendLog);
 
-        // 4) Load encounter deck
+        // 4) Load narrative deck
         EncounterDeck deck = new EncounterDeck(EncounterFactory.generateEncounters());
 
-        // 5) Initialize narrative controller
+        // 5) Narrative controller
         narrativeController = new NarrativeController(
                 deck,
                 narrativePanel,
                 player,
                 playerInfo,
                 () -> JOptionPane.showMessageDialog(
-                        mainFrame,
-                        "You’ve cleared the dungeon!",
-                        "Victory",
+                        mainFrame, "You’ve cleared the dungeon!", "Victory",
                         JOptionPane.INFORMATION_MESSAGE
                 )
         );
 
-        // 6) Wire up combat entry from narrative
+        // 6) When narrative says “start battle”…
         narrativeController.setOnBattleStart((BattleCard battleCard, ICard aftermathCard) -> {
             mainFrame.showCombat();
 
-            // a) Start & cache the coordinator in GameContext
-            CombatCoordinator coord =
-                    GameContext.startBattleWith(player, battleCard);
+            // 6a) new model
+            Player p = GameContext.getPlayer();
+            CombatCoordinator coord = GameContext.startBattleWith(p, battleCard);
 
-            // b) Create and start the CombatController
+            // 6b) wire up controller
             CombatController combatController = new CombatController(
                     coord,
                     combatPanel,
@@ -78,17 +74,15 @@ public class GameController {
                         narrativeController.resumeAfterBattle();
                     }
             );
-
             combatController.setPendingAfterStage(aftermathCard);
             combatController.start();
         });
 
-        // 7) Begin in narrative view
+        // 7) show narrative
         mainFrame.showNarrative();
         narrativeController.start();
     }
 
-    /** Launch helper. */
     public static void launch(Player player) {
         SwingUtilities.invokeLater(() -> new GameController(player));
     }

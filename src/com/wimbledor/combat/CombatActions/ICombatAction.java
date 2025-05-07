@@ -1,7 +1,7 @@
 // src/com/wimbledor/combat/ICombatAction.java
 package com.wimbledor.combat.CombatActions;
 
-import com.wimbledor.combat.AttackResult;
+import com.wimbledor.combat.TurnBasedSystem.AttackResult;
 import com.wimbledor.combat.enums.TargetMode;
 import com.wimbledor.entities.ICombatEntity;
 

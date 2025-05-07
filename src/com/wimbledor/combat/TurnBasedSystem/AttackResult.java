@@ -1,5 +1,5 @@
 // src/com/wimbledor/combat/AttackResult.java
-package com.wimbledor.combat;
+package com.wimbledor.combat.TurnBasedSystem;
 
 import com.wimbledor.combat.CombatActions.ICombatAction;
 import com.wimbledor.entities.ICombatEntity;

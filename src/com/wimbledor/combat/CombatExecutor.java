@@ -2,6 +2,7 @@ package com.wimbledor.combat;
 
 import com.wimbledor.combat.CombatActions.ICombatAction;
 import com.wimbledor.combat.CombatActions.StatScalingAttack;
+import com.wimbledor.combat.TurnBasedSystem.AttackResult;
 import com.wimbledor.engine.GameContext;
 import com.wimbledor.entities.ICombatEntity;
 

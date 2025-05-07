@@ -2,7 +2,7 @@ package com.wimbledor.combat.CombatActions;
 
 import com.wimbledor.combat.CombatMath;
 import com.wimbledor.combat.CombatExecutor;
-import com.wimbledor.combat.AttackResult;
+import com.wimbledor.combat.TurnBasedSystem.AttackResult;
 import com.wimbledor.combat.enums.TargetMode;
 import com.wimbledor.entities.ICombatEntity;
 

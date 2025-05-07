@@ -12,11 +12,11 @@ import java.util.*;
 public class RoundTurnQueue {
     private final Deque<ICombatEntity> currentRound = new ArrayDeque<>();
 
-    public RoundTurnQueue(List<ICombatEntity> sortedEntities) {
+    public RoundTurnQueue(List<ICombatEntity> sortedEntities, int roundNumber) {
         Objects.requireNonNull(sortedEntities);
         currentRound.addAll(sortedEntities);
 
-        System.out.println("=== New Round ===");
+        System.out.println("=== Round "+roundNumber+" ===");
         sortedEntities.forEach(e -> System.out.println(" - " + e.getName() + " (" + e.getTeam() + ")"));
     }
 

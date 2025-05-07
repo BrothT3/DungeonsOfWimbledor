@@ -29,9 +29,6 @@ public class EnemyViewPanel extends JPanel {
      * Render the given list of enemies in the panel.
      */
     public void setEnemies(List<ICombatEntity> enemies) {
-        System.out.println("== EnemyViewPanel.setEnemies called ==");
-        System.out.println("Incoming enemies:");
-        enemies.forEach(e -> System.out.println(" - " + e.getName() + " (" + e.getTeam() + ")"));
         currentEnemies.clear();
         currentEnemies.addAll(enemies);
         selectedEnemies.clear();
@@ -42,7 +39,6 @@ public class EnemyViewPanel extends JPanel {
             JPanel card = createEnemyCard(enemy);
             add(card);
         }
-        System.out.println("Enemy cards added: " + getComponentCount());
         revalidate();
         repaint();
     }
