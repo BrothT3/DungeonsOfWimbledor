@@ -1,9 +1,7 @@
-package com.wimbledor.assets.monsters;
+package com.wimbledor.entities.monsters;
 
 import com.wimbledor.combat.BaseStats;
-import com.wimbledor.combat.CombatActions.concrete.Backstab;
 import com.wimbledor.combat.CombatActions.concrete.Bite;
-import com.wimbledor.combat.CombatActions.concrete.Slash;
 import com.wimbledor.entities.BaseNPC;
 import com.wimbledor.entities.Team;
 

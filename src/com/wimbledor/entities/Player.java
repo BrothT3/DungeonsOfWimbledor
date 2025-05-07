@@ -42,7 +42,7 @@ public class Player implements ICombatEntity {
         this.level = 1;
         this.experience = 0;
         this.gold = 0;
-        this.baseStats = new BaseStats(10, 10, 10, 10, 10, 10);
+        this.baseStats = new BaseStats(10, 10, 100, 10, 10, 10);
         this.currentHp = getDerived(DerivedStat.MAX_HP);
     }
 

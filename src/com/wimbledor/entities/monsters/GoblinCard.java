@@ -1,11 +1,9 @@
 // src/com/wimbledor/cards/MonsterCards/GoblinCard.java
-package com.wimbledor.assets.monsters;
+package com.wimbledor.entities.monsters;
 
 import com.wimbledor.combat.BaseStats;
 import com.wimbledor.combat.CombatActions.concrete.Backstab;
 import com.wimbledor.combat.CombatActions.concrete.Slash;
-import com.wimbledor.combat.enums.DerivedStat;
-import com.wimbledor.combat.enums.Stat;
 import com.wimbledor.entities.BaseNPC;
 import com.wimbledor.entities.Team;
 

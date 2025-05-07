@@ -4,7 +4,7 @@ import com.wimbledor.assets.BattleCard;
 import com.wimbledor.assets.encounters.EncounterCard;
 import com.wimbledor.assets.encounters.EncounterStage;
 import com.wimbledor.assets.encounters.StageOption;
-import com.wimbledor.assets.monsters.GoblinCard;
+import com.wimbledor.entities.monsters.GoblinCard;
 import com.wimbledor.engine.EncounterProvider;
 
 import java.util.List;

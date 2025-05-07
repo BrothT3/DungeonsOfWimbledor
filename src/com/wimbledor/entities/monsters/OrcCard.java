@@ -1,5 +1,5 @@
 // src/com/wimbledor/cards/MonsterCards/OrcCard.java
-package com.wimbledor.assets.monsters;
+package com.wimbledor.entities.monsters;
 
 import com.wimbledor.combat.BaseStats;
 import com.wimbledor.combat.CombatActions.concrete.Slash;

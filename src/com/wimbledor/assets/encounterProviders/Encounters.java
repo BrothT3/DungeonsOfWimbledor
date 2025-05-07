@@ -5,7 +5,7 @@
 //import com.wimbledor.assets.encounters.EncounterStage;
 //import com.wimbledor.assets.encounters.StageOption;
 //import com.wimbledor.engine.EncounterProvider;
-//import com.wimbledor.assets.monsters.*;
+//import com.wimbledor.entities.monsters.*;
 //
 //import java.util.List;
 //

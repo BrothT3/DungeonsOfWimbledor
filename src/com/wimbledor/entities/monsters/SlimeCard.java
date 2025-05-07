@@ -1,4 +1,5 @@
-package com.wimbledor.assets.monsters;
+// src/com/wimbledor/cards/MonsterCards/SlimeCard.java
+package com.wimbledor.entities.monsters;
 
 import com.wimbledor.combat.BaseStats;
 import com.wimbledor.combat.CombatActions.concrete.Slash;
@@ -7,27 +8,26 @@ import com.wimbledor.entities.Team;
 
 import java.util.List;
 
-public class Kappa extends BaseNPC {
-    public Kappa() {
+public class SlimeCard extends BaseNPC {
+    public SlimeCard() {
         super(
-                "Kappa",
+                "Slime",
                 Team.ENEMY,
-                new BaseStats(4, 8, 5, 6, 12, 6),
+                new BaseStats(3, 5, 3, 2, 2, 1),
+                2,
                 3,
-                5,
                 List.of(new Slash(1))
         );
     }
 
-
     @Override
     public String getRevealText() {
-        return "a small reptilian thing clicks it's beak at you!";
+        return "You hear a wet plop as a gelatinous slime oozes into view.";
     }
 
     @Override
     public String getHoverText() {
-        return "a water-dwelling small man with turtle-like features. Loves to drown unwatched children";
+        return "Weak but sticky—avoid its slow, corrosive touch.";
     }
 
 

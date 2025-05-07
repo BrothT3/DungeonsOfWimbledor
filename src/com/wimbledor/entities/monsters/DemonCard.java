@@ -1,9 +1,8 @@
 // src/com/wimbledor/cards/MonsterCards/DemonCard.java
-package com.wimbledor.assets.monsters;
+package com.wimbledor.entities.monsters;
 
 import com.wimbledor.combat.BaseStats;
 import com.wimbledor.combat.CombatActions.concrete.MagicMissile;
-import com.wimbledor.combat.CombatActions.concrete.Slash;
 import com.wimbledor.entities.BaseNPC;
 import com.wimbledor.entities.Team;
 
