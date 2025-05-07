@@ -19,7 +19,18 @@ public class RoundTurnQueue {
         System.out.println("=== Round "+roundNumber+" ===");
         sortedEntities.forEach(e -> System.out.println(" - " + e.getName() + " (" + e.getTeam() + ")"));
     }
+    /** NEW: remove a just-killed actor from the remainder of this round. */
+    public void removeDead(ICombatEntity dead) {
+        currentRound.removeIf(e -> e.equals(dead));
+    }
 
+    /** NEW: snapshot of whoever’s still in the queue, for UI display. */
+    public List<ICombatEntity> upcoming() {
+        return List.copyOf(currentRound);
+    }
+    public void setCurrentRound(int i){
+
+    }
     public ICombatEntity nextTurn() {
         while (!currentRound.isEmpty()) {
             ICombatEntity next = currentRound.pollFirst();

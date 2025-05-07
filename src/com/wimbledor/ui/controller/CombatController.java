@@ -55,19 +55,19 @@ public class CombatController implements CombatLoop.Listener {
         // 1) Gather targets
         List<ICombatEntity> targets = panel.getSelectedEnemies();
 
-        // 2) Tell the coordinator to execute exactly one player turn
+        // 2) Execute the player’s action
         TurnResult result = coordinator.playerAct(action, targets);
 
-        // 3) Immediately render that result in the UI
-        onTurnResult(result);
+        // 3) Push that result into the UI
+        SwingUtilities.invokeLater(() -> onTurnResult(result));
 
-        // 4) Hide the buttons (we’re now waiting on the AI)
+        // 4) Disable clicks until next PLAYER_TURN
         playerTurn = false;
 
-        // 5) Prime the loop so it will pick up the very next AI turn
+        // 5) Tell the loop “ok, you can resume” so it can run the next AI turn
         loop.primeNextTurn();
 
-        // 6) Refresh the right‐hand player stats
+        // 6) Keep the right‐hand panel in sync
         playerInfo.setPlayer(GameContext.getPlayer());
     }
 
@@ -88,7 +88,7 @@ public class CombatController implements CombatLoop.Listener {
         switch (result.getType()) {
             case PLAYER_TURN -> {
                 // Show the player's buttons
-                //System.out.println("Player Turn");
+                System.out.println("Player Turn");
                 playerTurn = true;
                 panel.updateActions(result.getPlayerActions());
             }
@@ -96,7 +96,7 @@ public class CombatController implements CombatLoop.Listener {
             case AI_TURN -> {
                 // Hide/disable player buttons
                 playerTurn = false;
-                //System.out.println("AI Turn");
+                System.out.println("AI Turn");
                 panel.updateActions(null);
             }
 

@@ -17,7 +17,7 @@ public class Slash extends StatScalingAttack {
             2,                          // basePower
             Map.of(Stat.STRENGTH, 1.0), // scaling: simple STR-based
             5,                          // maxLevel
-            10.0,                       // thetaBase
+            20.0,                       // thetaBase
             2.0,                        // deltaTheta
             2.0,                        // softnessExp
             1.0,                        // scaleFactor

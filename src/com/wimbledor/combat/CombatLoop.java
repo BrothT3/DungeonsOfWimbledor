@@ -8,88 +8,120 @@ import com.wimbledor.engine.DeltaTimer;
 import javax.swing.SwingUtilities;
 
 public class CombatLoop implements Runnable {
-    private ICombatAction nextAction;
-
     public interface Listener {
         void onTurnResult(TurnResult result);
     }
 
-    private final CombatCoordinator coordinator;
-    private final Listener            listener;
-    private final DeltaTimer          timer   = new DeltaTimer();
-    private volatile boolean          running = false;
+    private final CombatCoordinator coord;
+    private final Listener listener;
+    private final DeltaTimer timer = new DeltaTimer();
 
-    public CombatLoop(CombatCoordinator coordinator, Listener listener) {
-        this.coordinator = coordinator;
-        this.listener    = listener;
+    private volatile boolean running = false;
+    private volatile boolean waitingForPlayer = false;
+
+    public CombatLoop(CombatCoordinator coord, Listener listener) {
+        this.coord = coord;
+        this.listener = listener;
     }
 
-    /** Starts the background thread. */
+    /**
+     * Start the loop. Immediately fires exactly one turn (AI or player),
+     * then continues in background to step through all AI turns until we hit a player turn,
+     * at which point it will pause again until you call primeNextTurn().
+     */
     public void start() {
-        nextAction = coordinator.peekNextAiAction();
         if (running) return;
         running = true;
+        waitingForPlayer = false;
+
+        // Fire the very first turn.
+        TurnResult first = coord.nextTurn();
+        SwingUtilities.invokeLater(() -> listener.onTurnResult(first));
+
+        // If that was a player pause, go into waiting mode,
+        // otherwise reset timer for the next AI.
+        if (first.getType() == TurnResult.Type.PLAYER_TURN) {
+            waitingForPlayer = true;
+        } else if (first.getType() == TurnResult.Type.AI_TURN) {
+            timer.reset();
+        } else { // BATTLE_OVER
+            running = false;
+            return;
+        }
+
         new Thread(this, "CombatLoop").start();
     }
 
-    /** Stops after the current iteration. */
+    /**
+     * Called by CombatController.onPlayerAction()
+     * once the user has clicked their button. This
+     * un-pauses the loop so it can fire the next AI turn.
+     */
+    public void primeNextTurn() {
+        waitingForPlayer = false;
+        timer.reset();
+    }
+
+    /**
+     * Stops the loop after the current iteration.
+     */
     public void stop() {
         running = false;
-    }
-    public void primeNextTurn() {
-        this.nextAction = coordinator.peekNextAiAction();
-        timer.reset();
     }
 
     @Override
     public void run() {
         while (running && !Thread.currentThread().isInterrupted()) {
-            // 1) Look at the next AI action. If null, that means either
-            //    (a) next actor is the player, or (b) battle’s over.
-            ICombatAction nextAi = nextAction;
-
-            if (nextAi == null) {
-                // *** Player’s turn (or BATTLE_OVER) happens immediately ***
-                TurnResult result = coordinator.nextTurn();
-                SwingUtilities.invokeLater(() -> listener.onTurnResult(result));
-
-                // if it really was the player’s turn, we now pause here
-                // until CombatController.onPlayerAction() calls start() again.
-                if (result.getType() == TurnResult.Type.PLAYER_TURN) {
-                    running = false;
-                    return;
-                }
-
-                // if battle over, stop looping entirely
-                if (result.getType() == TurnResult.Type.BATTLE_OVER) {
-                    running = false;
-                    return;
-                }
-
-                // otherwise (rare: maybe runToPause logic), loop continues
+            if (waitingForPlayer) {
+                // parked on a PLAYER_TURN until primeNextTurn() is called
+                sleep5ms();
+                continue;
             }
-            else {
-                // *** AI turn: wait for its duration, then fire one turn ***
+
+            // peek at the next AI action
+            ICombatAction nextAi = coord.peekNextAiAction();
+            if (nextAi == null) {
+                TurnResult r = coord.nextTurn();
+                SwingUtilities.invokeLater(() -> listener.onTurnResult(r));
+
+                switch (r.getType()) {
+                    case BATTLE_OVER:
+                        running = false;
+                        break;
+                    case PLAYER_TURN:
+                        // really a player pause
+                        waitingForPlayer = true;
+                        break;
+                    case AI_TURN:
+                        // it's an AI of the new round—reset the timer and keep going
+                        timer.reset();
+                        break;
+                }
+            } else {
+                // schedule the AI turn by its duration
                 timer.update();
                 if (timer.reached(nextAi.getDurationSeconds())) {
-                    TurnResult result = coordinator.nextTurn();
-                    SwingUtilities.invokeLater(() -> listener.onTurnResult(result));
-                    nextAction = coordinator.peekNextAiAction();
-                    timer.reset();
+                    TurnResult aiResult = coord.nextTurn();
+                    SwingUtilities.invokeLater(() -> listener.onTurnResult(aiResult));
 
-                    if (result.getType() == TurnResult.Type.BATTLE_OVER) {
+                    if (aiResult.getType() == TurnResult.Type.BATTLE_OVER) {
                         running = false;
-                        return;
+                    } else {
+                        // reset for the following AI
+                        timer.reset();
                     }
                 }
             }
 
-            // tiny sleep so we don’t busy-spin
-            try {
-                Thread.sleep(5);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+            sleep5ms();
+        }
+    }
+
+    private void sleep5ms() {
+        try {
+            Thread.sleep(5);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 }

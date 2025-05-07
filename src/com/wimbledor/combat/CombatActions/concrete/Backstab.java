@@ -17,7 +17,7 @@ public class Backstab extends StatScalingAttack {
             Stat.AGILITY, 0.60
     ),
             /* maxLevel           */ 4,
-            /* thetaBase          */ 40,
+            /* thetaBase          */ 20,
             /* deltaTheta         */ 160,
             /* softnessExp        */ 2,
             /* scaleFactor        */ 1.4,
